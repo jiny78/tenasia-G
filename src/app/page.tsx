@@ -6,6 +6,9 @@ import PhotoGrid from "@/components/PhotoGrid";
 import { Photo, Person, DateEntry } from "@/types";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+
+const apiHeaders: HeadersInit = API_KEY ? { "X-API-Key": API_KEY } : {};
 
 export default function Home() {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -14,6 +17,7 @@ export default function Home() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState({
     person: "",
@@ -24,6 +28,7 @@ export default function Home() {
 
   const fetchPhotos = useCallback(async (f = filters, p = 1) => {
     setLoading(true);
+    setError(null);
     const params = new URLSearchParams();
     if (f.person) params.set("person", f.person);
     if (f.role) params.set("role", f.role);
@@ -33,27 +38,34 @@ export default function Home() {
     params.set("limit", "60");
 
     try {
-      const res = await fetch(`${API}/public/gallery?${params}`);
+      const res = await fetch(`${API}/public/gallery?${params}`, { headers: apiHeaders });
       const data = await res.json();
       if (p === 1) {
-        setPhotos(data.photos);
+        setPhotos(data.photos ?? []);
       } else {
-        setPhotos((prev) => [...prev, ...data.photos]);
+        setPhotos((prev) => [...prev, ...(data.photos ?? [])]);
       }
-      setTotal(data.total);
+      setTotal(data.total ?? 0);
       setPage(p);
+    } catch (e) {
+      setError("사진을 불러오지 못했습니다.");
+      console.error(e);
     } finally {
       setLoading(false);
     }
   }, [filters]);
 
   useEffect(() => {
-    fetch(`${API}/public/gallery/persons`)
+    fetch(`${API}/public/gallery/persons`, { headers: apiHeaders })
       .then((r) => r.json())
-      .then((d) => setPersons(d.persons));
-    fetch(`${API}/public/gallery/dates`)
+      .then((d) => setPersons(d.persons ?? []))
+      .catch(console.error);
+
+    fetch(`${API}/public/gallery/dates`, { headers: apiHeaders })
       .then((r) => r.json())
-      .then((d) => setDates(d.dates));
+      .then((d) => setDates(d.dates ?? []))
+      .catch(console.error);
+
     fetchPhotos();
   }, []);
 
@@ -82,12 +94,16 @@ export default function Home() {
 
         {/* Photo Grid */}
         <main className="flex-1 overflow-y-auto p-4">
-          <PhotoGrid
-            photos={photos}
-            loading={loading}
-            hasMore={photos.length < total}
-            onLoadMore={() => fetchPhotos(filters, page + 1)}
-          />
+          {error ? (
+            <div className="flex items-center justify-center h-64 text-zinc-500 text-sm">{error}</div>
+          ) : (
+            <PhotoGrid
+              photos={photos}
+              loading={loading}
+              hasMore={photos.length < total}
+              onLoadMore={() => fetchPhotos(filters, page + 1)}
+            />
+          )}
         </main>
       </div>
     </div>
