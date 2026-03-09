@@ -7,8 +7,15 @@ import { Photo, Person, DateEntry } from "@/types";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+const R2_BASE = process.env.NEXT_PUBLIC_R2_BASE ?? "";
 
 const apiHeaders: HeadersInit = API_KEY ? { "X-API-Key": API_KEY } : {};
+
+function resolveUrl(url: string): string {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  return `${R2_BASE}${url.startsWith("/") ? "" : "/"}${url}`;
+}
 
 export default function Home() {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -41,9 +48,11 @@ export default function Home() {
       const res = await fetch(`${API}/public/gallery?${params}`, { headers: apiHeaders });
       const data = await res.json();
       if (p === 1) {
-        setPhotos(data.photos ?? []);
+        const resolved = (data.photos ?? []).map((p: Photo) => ({ ...p, url: resolveUrl(p.url) }));
+      setPhotos(resolved);
       } else {
-        setPhotos((prev) => [...prev, ...(data.photos ?? [])]);
+        const resolved = (data.photos ?? []).map((p: Photo) => ({ ...p, url: resolveUrl(p.url) }));
+        setPhotos((prev) => [...prev, ...resolved]);
       }
       setTotal(data.total ?? 0);
       setPage(p);
