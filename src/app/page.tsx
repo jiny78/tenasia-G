@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import PhotoGrid from "@/components/PhotoGrid";
 import FilterBar from "@/components/FilterBar";
 import { Photo, Person, DateEntry, GalleryEvent } from "@/types";
@@ -25,6 +25,24 @@ export type Filters = {
 
 const EMPTY: Filters = { person: "", event: "", year: "" };
 
+// ── 테마 정의 ────────────────────────────────────────────────
+export type ThemeKey = "black" | "charcoal" | "cream" | "white";
+
+export const THEMES: Record<ThemeKey, {
+  label: string;
+  swatch: string;
+  bg: string;
+  header: string;
+  border: string;
+  text: string;
+  sub: string;
+}> = {
+  black:    { label: "흑",  swatch: "#111111", bg: "bg-[#111]",    header: "bg-[#111]/95",   border: "border-white/8",  text: "text-white",      sub: "text-white/30" },
+  charcoal: { label: "회",  swatch: "#2a2a2a", bg: "bg-[#2a2a2a]", header: "bg-[#2a2a2a]/95",border: "border-white/10", text: "text-white",      sub: "text-white/30" },
+  cream:    { label: "크림", swatch: "#ede8df", bg: "bg-[#ede8df]", header: "bg-[#ede8df]/95",border: "border-black/8",  text: "text-[#1a1a1a]", sub: "text-[#1a1a1a]/40" },
+  white:    { label: "백",  swatch: "#f5f5f3", bg: "bg-[#f5f5f3]", header: "bg-[#f5f5f3]/95",border: "border-black/8",  text: "text-[#111]",    sub: "text-[#111]/35" },
+};
+
 export default function Home() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [persons, setPersons] = useState<Person[]>([]);
@@ -34,6 +52,20 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<Filters>(EMPTY);
+  const [theme, setTheme] = useState<ThemeKey>("black");
+
+  // localStorage에서 테마 복원
+  useEffect(() => {
+    const saved = localStorage.getItem("tg-theme") as ThemeKey | null;
+    if (saved && THEMES[saved]) setTheme(saved);
+  }, []);
+
+  const changeTheme = (k: ThemeKey) => {
+    setTheme(k);
+    localStorage.setItem("tg-theme", k);
+  };
+
+  const t = THEMES[theme];
 
   const fetchPhotos = useCallback(async (f: Filters, p: number) => {
     setLoading(true);
@@ -43,26 +75,20 @@ export default function Home() {
     if (f.year) params.set("year", f.year);
     params.set("page", String(p));
     params.set("limit", "60");
-
     try {
       const res = await fetch(`${API}/public/gallery?${params}`, { headers: apiHeaders });
       const data = await res.json();
       const resolved = (data.photos ?? []).map((ph: Photo) => ({
-        ...ph,
-        url: resolveUrl(ph.url),
+        ...ph, url: resolveUrl(ph.url),
       }));
       if (p === 1) setPhotos(resolved);
       else setPhotos((prev) => [...prev, ...resolved]);
       setTotal(data.total ?? 0);
       setPage(p);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }, []);
 
-  // 연도 변경 시 이벤트 목록 갱신
   const fetchEvents = useCallback(async (year: string) => {
     const params = year ? `?year=${year}` : "";
     try {
@@ -82,33 +108,56 @@ export default function Home() {
   }, [fetchPhotos, fetchEvents]);
 
   const handleFilter = (next: Filters) => {
-    // 연도가 바뀌면 이벤트 목록 새로고침
     if (next.year !== filters.year) fetchEvents(next.year);
     setFilters(next);
     fetchPhotos(next, 1);
   };
 
   return (
-    <div className="min-h-screen bg-[#111] text-white">
+    <div className={`min-h-screen ${t.bg} ${t.text} transition-colors duration-300`}>
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#111]/95 backdrop-blur border-b border-white/8">
+      <header className={`sticky top-0 z-30 ${t.header} backdrop-blur border-b ${t.border} transition-colors duration-300`}>
         <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center gap-6">
+          {/* 로고 */}
           <div className="flex items-baseline gap-2 shrink-0">
             <span className="text-base font-bold tracking-[0.15em] uppercase">Tenasia</span>
-            <span className="text-[10px] text-white/25 tracking-[0.4em] uppercase">Gallery</span>
+            <span className={`text-[10px] tracking-[0.4em] uppercase ${t.sub}`}>Gallery</span>
           </div>
+
+          {/* 필터 */}
           <div className="flex-1 min-w-0">
             <FilterBar
               persons={persons}
               dates={dates}
               events={events}
               filters={filters}
+              theme={theme}
               onChange={handleFilter}
             />
           </div>
-          <span className="text-white/20 text-xs tabular-nums shrink-0">
-            {total.toLocaleString()}
-          </span>
+
+          {/* 우측: 카운트 + 테마 스와치 */}
+          <div className="flex items-center gap-3 shrink-0">
+            <span className={`text-xs tabular-nums ${t.sub}`}>{total.toLocaleString()}</span>
+
+            {/* 테마 선택 */}
+            <div className="flex gap-1.5">
+              {(Object.keys(THEMES) as ThemeKey[]).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => changeTheme(k)}
+                  title={THEMES[k].label}
+                  className={`w-4 h-4 rounded-full border transition-all ${
+                    theme === k ? "ring-2 ring-offset-1 ring-current scale-110" : "opacity-50 hover:opacity-80"
+                  }`}
+                  style={{
+                    backgroundColor: THEMES[k].swatch,
+                    borderColor: theme === "white" || theme === "cream" ? "#00000030" : "#ffffff30",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </header>
 
@@ -118,6 +167,7 @@ export default function Home() {
           loading={loading}
           hasMore={photos.length < total}
           onLoadMore={() => fetchPhotos(filters, page + 1)}
+          theme={theme}
         />
       </main>
     </div>
