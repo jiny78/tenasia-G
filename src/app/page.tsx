@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import FilterPanel from "@/components/FilterPanel";
+import { useState, useEffect, useCallback, useRef } from "react";
 import PhotoGrid from "@/components/PhotoGrid";
+import FilterBar from "@/components/FilterBar";
 import { Photo, Person, DateEntry } from "@/types";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -17,6 +17,15 @@ function resolveUrl(url: string): string {
   return `${R2_BASE}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
+export type Filters = {
+  person: string;
+  role: string;
+  year: string;
+  month: string;
+};
+
+const EMPTY: Filters = { person: "", role: "", year: "", month: "" };
+
 export default function Home() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [persons, setPersons] = useState<Person[]>([]);
@@ -24,18 +33,11 @@ export default function Home() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Filters>(EMPTY);
+  const pageRef = useRef(1);
 
-  const [filters, setFilters] = useState({
-    person: "",
-    role: "",
-    year: "",
-    month: "",
-  });
-
-  const fetchPhotos = useCallback(async (f = filters, p = 1) => {
+  const fetchPhotos = useCallback(async (f: Filters, p: number) => {
     setLoading(true);
-    setError(null);
     const params = new URLSearchParams();
     if (f.person) params.set("person", f.person);
     if (f.role) params.set("role", f.role);
@@ -47,74 +49,65 @@ export default function Home() {
     try {
       const res = await fetch(`${API}/public/gallery?${params}`, { headers: apiHeaders });
       const data = await res.json();
-      if (p === 1) {
-        const resolved = (data.photos ?? []).map((p: Photo) => ({ ...p, url: resolveUrl(p.url) }));
-      setPhotos(resolved);
-      } else {
-        const resolved = (data.photos ?? []).map((p: Photo) => ({ ...p, url: resolveUrl(p.url) }));
-        setPhotos((prev) => [...prev, ...resolved]);
-      }
+      const resolved = (data.photos ?? []).map((ph: Photo) => ({ ...ph, url: resolveUrl(ph.url) }));
+      if (p === 1) setPhotos(resolved);
+      else setPhotos((prev) => [...prev, ...resolved]);
       setTotal(data.total ?? 0);
+      pageRef.current = p;
       setPage(p);
     } catch (e) {
-      setError("사진을 불러오지 못했습니다.");
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, []);
 
   useEffect(() => {
     fetch(`${API}/public/gallery/persons`, { headers: apiHeaders })
-      .then((r) => r.json())
-      .then((d) => setPersons(d.persons ?? []))
-      .catch(console.error);
-
+      .then((r) => r.json()).then((d) => setPersons(d.persons ?? [])).catch(console.error);
     fetch(`${API}/public/gallery/dates`, { headers: apiHeaders })
-      .then((r) => r.json())
-      .then((d) => setDates(d.dates ?? []))
-      .catch(console.error);
+      .then((r) => r.json()).then((d) => setDates(d.dates ?? [])).catch(console.error);
+    fetchPhotos(EMPTY, 1);
+  }, [fetchPhotos]);
 
-    fetchPhotos();
-  }, []);
-
-  const applyFilter = (newFilters: typeof filters) => {
-    setFilters(newFilters);
-    fetchPhotos(newFilters, 1);
+  // 필터 변경 — 독립 모드 / 복합 모드 구분
+  const handleFilter = (next: Filters) => {
+    setFilters(next);
+    fetchPhotos(next, 1);
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="min-h-screen bg-[#0e0e0e] text-white">
       {/* Header */}
-      <header className="border-b border-zinc-800 px-6 py-4 flex items-baseline gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">TENASIA</h1>
-        <span className="text-zinc-400 text-sm font-light">GALLERY</span>
-        <span className="ml-auto text-zinc-500 text-xs">{total.toLocaleString()} photos</span>
+      <header className="sticky top-0 z-30 bg-[#0e0e0e]/95 backdrop-blur border-b border-white/10">
+        <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center gap-4">
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-bold tracking-widest uppercase">Tenasia</span>
+            <span className="text-xs text-white/30 tracking-[0.3em] uppercase">Gallery</span>
+          </div>
+          <div className="flex-1">
+            <FilterBar
+              persons={persons}
+              dates={dates}
+              filters={filters}
+              onChange={handleFilter}
+            />
+          </div>
+          <span className="text-white/30 text-xs tabular-nums shrink-0">
+            {total.toLocaleString()} photos
+          </span>
+        </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Filter Panel */}
-        <FilterPanel
-          persons={persons}
-          dates={dates}
-          filters={filters}
-          onChange={applyFilter}
+      {/* Grid */}
+      <main className="max-w-screen-2xl mx-auto px-4 py-6">
+        <PhotoGrid
+          photos={photos}
+          loading={loading}
+          hasMore={photos.length < total}
+          onLoadMore={() => fetchPhotos(filters, page + 1)}
         />
-
-        {/* Photo Grid */}
-        <main className="flex-1 overflow-y-auto p-4">
-          {error ? (
-            <div className="flex items-center justify-center h-64 text-zinc-500 text-sm">{error}</div>
-          ) : (
-            <PhotoGrid
-              photos={photos}
-              loading={loading}
-              hasMore={photos.length < total}
-              onLoadMore={() => fetchPhotos(filters, page + 1)}
-            />
-          )}
-        </main>
-      </div>
+      </main>
     </div>
   );
 }
