@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Photo } from "@/types";
+import Lightbox from "@/components/Lightbox";
 
 interface Props {
   photos: Photo[];
@@ -41,6 +42,7 @@ function buildSections(photos: Photo[]): Section[] {
 
 export default function PhotoGrid({ photos, loading, hasMore, onLoadMore }: Props) {
   const sentinel = useRef<HTMLDivElement>(null);
+  const [lbIndex, setLbIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const el = sentinel.current;
@@ -55,6 +57,17 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore }: Prop
 
   const sections = useMemo(() => buildSections(photos), [photos]);
 
+  // 전체 photos에서 섹션별 인덱스 오프셋 계산
+  const sectionOffsets = useMemo(() => {
+    const offsets: number[] = [];
+    let offset = 0;
+    for (const sec of sections) {
+      offsets.push(offset);
+      offset += sec.photos.length;
+    }
+    return offsets;
+  }, [sections]);
+
   if (!loading && photos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-40 gap-3 text-white/15 select-none">
@@ -66,9 +79,22 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore }: Prop
 
   return (
     <div>
-      {sections.map((sec) => (
-        <PhotoSection key={sec.key} section={sec} />
+      {sections.map((sec, si) => (
+        <PhotoSection
+          key={sec.key}
+          section={sec}
+          offset={sectionOffsets[si]}
+          onOpen={(i) => setLbIndex(i)}
+        />
       ))}
+      {lbIndex !== null && (
+        <Lightbox
+          photos={photos}
+          index={lbIndex}
+          onClose={() => setLbIndex(null)}
+          onNav={setLbIndex}
+        />
+      )}
       <div ref={sentinel} className="h-2" />
       {loading && (
         <div className="flex justify-center py-16">
@@ -80,42 +106,38 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore }: Prop
 }
 
 /* ─── 섹션 레이아웃 ─────────────────────────────────────────── */
-function PhotoSection({ section }: { section: Section }) {
+function PhotoSection({
+  section, offset, onOpen,
+}: {
+  section: Section;
+  offset: number;
+  onOpen: (globalIndex: number) => void;
+}) {
   const { title, date, photos } = section;
+  const open = (localIndex: number) => onOpen(offset + localIndex);
 
   return (
     <div className="mb-20">
-      {/* 섹션 헤더 */}
       <div className="flex items-end justify-between mb-5 pb-3 border-b border-white/8">
-        <h2 className="text-xl font-light tracking-wide text-white/85 leading-none">
-          {title}
-        </h2>
+        <h2 className="text-xl font-light tracking-wide text-white/85 leading-none">{title}</h2>
         <div className="text-right">
           <p className="text-xs text-white/30 tabular-nums">{date}</p>
           <p className="text-[10px] text-white/18 mt-0.5">{photos.length} photos</p>
         </div>
       </div>
-
-      {/* 사진 배치 */}
-      <BookLayout photos={photos} />
+      <BookLayout photos={photos} onOpen={open} />
     </div>
   );
 }
 
-/* ─── 포토북 그리드 배치 ───────────────────────────────────────
-   1장:  전체 너비
-   2장:  50/50
-   3장:  60/40 상단 + 1장 하단
-   4–8장: 큰 1장 왼쪽 + 오른쪽 격자
-   9장+:  위에 3열, 나머지 masonry
-*/
-function BookLayout({ photos }: { photos: Photo[] }) {
+/* ─── 포토북 그리드 배치 ─────────────────────────────────────── */
+function BookLayout({ photos, onOpen }: { photos: Photo[]; onOpen: (i: number) => void }) {
   const n = photos.length;
 
   if (n === 1) {
     return (
       <div className="max-w-2xl mx-auto">
-        <PhotoCard photo={photos[0]} aspect="aspect-[4/3]" />
+        <PhotoCard photo={photos[0]} aspect="aspect-[4/3]" onClick={() => onOpen(0)} />
       </div>
     );
   }
@@ -123,8 +145,9 @@ function BookLayout({ photos }: { photos: Photo[] }) {
   if (n === 2) {
     return (
       <div className="grid grid-cols-2 gap-1.5">
-        <PhotoCard photo={photos[0]} aspect="aspect-[3/4]" />
-        <PhotoCard photo={photos[1]} aspect="aspect-[3/4]" />
+        {photos.map((p, i) => (
+          <PhotoCard key={p.id} photo={p} aspect="aspect-[3/4]" onClick={() => onOpen(i)} />
+        ))}
       </div>
     );
   }
@@ -132,43 +155,36 @@ function BookLayout({ photos }: { photos: Photo[] }) {
   if (n === 3) {
     return (
       <div className="grid grid-cols-2 gap-1.5">
-        <PhotoCard photo={photos[0]} aspect="aspect-[3/4]" className="row-span-2" />
-        <PhotoCard photo={photos[1]} aspect="aspect-[3/4]" />
-        <PhotoCard photo={photos[2]} aspect="aspect-[3/4]" />
+        <PhotoCard photo={photos[0]} aspect="aspect-[3/4]" className="row-span-2" onClick={() => onOpen(0)} />
+        <PhotoCard photo={photos[1]} aspect="aspect-[3/4]" onClick={() => onOpen(1)} />
+        <PhotoCard photo={photos[2]} aspect="aspect-[3/4]" onClick={() => onOpen(2)} />
       </div>
     );
   }
 
   if (n <= 8) {
-    /* 왼쪽 큰 사진 1장 + 오른쪽 2열 나머지 */
     const hero = photos[0];
     const rest = photos.slice(1);
     const rightCols = Math.min(2, Math.ceil(rest.length / 2));
     return (
       <div className="flex gap-1.5">
-        {/* 히어로 */}
         <div className="w-[45%] shrink-0">
-          <PhotoCard photo={hero} aspect="aspect-[2/3]" />
+          <PhotoCard photo={hero} aspect="aspect-[2/3]" onClick={() => onOpen(0)} />
         </div>
-        {/* 나머지 2열 격자 */}
-        <div
-          className="flex-1 grid gap-1.5"
-          style={{ gridTemplateColumns: `repeat(${rightCols}, 1fr)` }}
-        >
-          {rest.map((p) => (
-            <PhotoCard key={p.id} photo={p} aspect="aspect-[3/4]" />
+        <div className="flex-1 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${rightCols}, 1fr)` }}>
+          {rest.map((p, i) => (
+            <PhotoCard key={p.id} photo={p} aspect="aspect-[3/4]" onClick={() => onOpen(i + 1)} />
           ))}
         </div>
       </div>
     );
   }
 
-  /* 9장 이상: masonry columns */
   return (
     <div className="columns-2 sm:columns-3 lg:columns-4 gap-1.5">
-      {photos.map((p) => (
+      {photos.map((p, i) => (
         <div key={p.id} className="break-inside-avoid mb-1.5">
-          <PhotoCard photo={p} />
+          <PhotoCard photo={p} onClick={() => onOpen(i)} />
         </div>
       ))}
     </div>
@@ -180,13 +196,18 @@ function PhotoCard({
   photo,
   aspect,
   className = "",
+  onClick,
 }: {
   photo: Photo;
   aspect?: string;
   className?: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className={`group relative overflow-hidden bg-white/4 ${aspect ?? ""} ${className}`}>
+    <div
+      onClick={onClick}
+      className={`group relative overflow-hidden bg-white/4 cursor-pointer ${aspect ?? ""} ${className}`}
+    >
       <Image
         src={photo.url}
         alt={photo.person ?? "photo"}
