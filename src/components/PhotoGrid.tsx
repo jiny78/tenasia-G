@@ -13,115 +13,199 @@ interface Props {
 
 interface Section {
   key: string;
-  label: string;
-  sublabel?: string;
+  title: string;
+  date: string;
   photos: Photo[];
 }
 
-function groupPhotos(photos: Photo[]): Section[] {
-  const groups = new Map<string, Photo[]>();
+/* 같은 role_tag + 연월 기준으로 섹션 묶기 */
+function buildSections(photos: Photo[]): Section[] {
+  const map = new Map<string, Photo[]>();
   for (const p of photos) {
-    // role_tag(이벤트명) + date 기준 그룹
-    const key = `${p.role ?? ""}__${p.date?.slice(0, 7) ?? ""}`;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(p);
+    const k = `${p.role ?? ""}||${p.date?.slice(0, 7) ?? ""}`;
+    if (!map.has(k)) map.set(k, []);
+    map.get(k)!.push(p);
   }
-
-  return [...groups.entries()].map(([key, ps]) => {
-    const [role, yearMonth] = key.split("__");
-    const label = role || (yearMonth ? formatYearMonth(yearMonth) : "기타");
-    const sublabel = role && yearMonth ? formatYearMonth(yearMonth) : undefined;
-    return { key, label, sublabel, photos: ps };
+  return [...map.entries()].map(([k, ps]) => {
+    const [role, ym] = k.split("||");
+    const [y, m] = (ym ?? "").split("-");
+    const dateLabel = y && m ? `${y}.${m.padStart(2, "0")}` : y ?? "";
+    return {
+      key: k,
+      title: role || "Gallery",
+      date: dateLabel,
+      photos: ps,
+    };
   });
 }
 
-function formatYearMonth(ym: string) {
-  if (!ym) return "";
-  const [y, m] = ym.split("-");
-  if (!y || !m) return ym;
-  return `${y}년 ${parseInt(m)}월`;
-}
-
 export default function PhotoGrid({ photos, loading, hasMore, onLoadMore }: Props) {
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const sentinel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = sentinelRef.current;
+    const el = sentinel.current;
     if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting && hasMore && !loading) onLoadMore(); },
-      { rootMargin: "600px" }
+    const io = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting && hasMore && !loading) onLoadMore(); },
+      { rootMargin: "800px" }
     );
-    observer.observe(el);
-    return () => observer.disconnect();
+    io.observe(el);
+    return () => io.disconnect();
   }, [hasMore, loading, onLoadMore]);
 
-  const sections = useMemo(() => groupPhotos(photos), [photos]);
+  const sections = useMemo(() => buildSections(photos), [photos]);
 
   if (!loading && photos.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-2 text-white/20">
-        <span className="text-4xl">◻</span>
-        <span className="text-sm tracking-widest uppercase">No photos</span>
+      <div className="flex flex-col items-center justify-center py-40 gap-3 text-white/15 select-none">
+        <span className="text-5xl font-thin">◻</span>
+        <span className="text-xs tracking-[0.4em] uppercase">No Photos</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-12">
-      {sections.map((section) => (
-        <section key={section.key}>
-          {/* 섹션 헤더 */}
-          <div className="flex items-baseline gap-3 mb-4 pb-2 border-b border-white/8">
-            <h2 className="text-sm font-medium tracking-wide text-white/80">{section.label}</h2>
-            {section.sublabel && (
-              <span className="text-xs text-white/30">{section.sublabel}</span>
-            )}
-            <span className="ml-auto text-xs text-white/20 tabular-nums">{section.photos.length}</span>
-          </div>
-
-          {/* 포토 마사리 그리드 */}
-          <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-2">
-            {section.photos.map((photo) => (
-              <PhotoCard key={photo.id} photo={photo} />
-            ))}
-          </div>
-        </section>
+    <div>
+      {sections.map((sec) => (
+        <PhotoSection key={sec.key} section={sec} />
       ))}
-
-      {/* 무한 스크롤 센티넬 */}
-      <div ref={sentinelRef} className="h-4" />
-
+      <div ref={sentinel} className="h-2" />
       {loading && (
-        <div className="flex justify-center py-10">
-          <div className="w-5 h-5 border border-white/20 border-t-white/60 rounded-full animate-spin" />
+        <div className="flex justify-center py-16">
+          <div className="w-4 h-4 border border-white/15 border-t-white/50 rounded-full animate-spin" />
         </div>
       )}
     </div>
   );
 }
 
-function PhotoCard({ photo }: { photo: Photo }) {
+/* ─── 섹션 레이아웃 ─────────────────────────────────────────── */
+function PhotoSection({ section }: { section: Section }) {
+  const { title, date, photos } = section;
+
   return (
-    <div className="break-inside-avoid mb-2 group relative overflow-hidden rounded-sm bg-white/5">
+    <div className="mb-20">
+      {/* 섹션 헤더 */}
+      <div className="flex items-end justify-between mb-5 pb-3 border-b border-white/8">
+        <h2 className="text-xl font-light tracking-wide text-white/85 leading-none">
+          {title}
+        </h2>
+        <div className="text-right">
+          <p className="text-xs text-white/30 tabular-nums">{date}</p>
+          <p className="text-[10px] text-white/18 mt-0.5">{photos.length} photos</p>
+        </div>
+      </div>
+
+      {/* 사진 배치 */}
+      <BookLayout photos={photos} />
+    </div>
+  );
+}
+
+/* ─── 포토북 그리드 배치 ───────────────────────────────────────
+   1장:  전체 너비
+   2장:  50/50
+   3장:  60/40 상단 + 1장 하단
+   4–8장: 큰 1장 왼쪽 + 오른쪽 격자
+   9장+:  위에 3열, 나머지 masonry
+*/
+function BookLayout({ photos }: { photos: Photo[] }) {
+  const n = photos.length;
+
+  if (n === 1) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <PhotoCard photo={photos[0]} aspect="aspect-[4/3]" />
+      </div>
+    );
+  }
+
+  if (n === 2) {
+    return (
+      <div className="grid grid-cols-2 gap-1.5">
+        <PhotoCard photo={photos[0]} aspect="aspect-[3/4]" />
+        <PhotoCard photo={photos[1]} aspect="aspect-[3/4]" />
+      </div>
+    );
+  }
+
+  if (n === 3) {
+    return (
+      <div className="grid grid-cols-2 gap-1.5">
+        <PhotoCard photo={photos[0]} aspect="aspect-[3/4]" className="row-span-2" />
+        <PhotoCard photo={photos[1]} aspect="aspect-[3/4]" />
+        <PhotoCard photo={photos[2]} aspect="aspect-[3/4]" />
+      </div>
+    );
+  }
+
+  if (n <= 8) {
+    /* 왼쪽 큰 사진 1장 + 오른쪽 2열 나머지 */
+    const hero = photos[0];
+    const rest = photos.slice(1);
+    const rightCols = Math.min(2, Math.ceil(rest.length / 2));
+    return (
+      <div className="flex gap-1.5">
+        {/* 히어로 */}
+        <div className="w-[45%] shrink-0">
+          <PhotoCard photo={hero} aspect="aspect-[2/3]" />
+        </div>
+        {/* 나머지 2열 격자 */}
+        <div
+          className="flex-1 grid gap-1.5"
+          style={{ gridTemplateColumns: `repeat(${rightCols}, 1fr)` }}
+        >
+          {rest.map((p) => (
+            <PhotoCard key={p.id} photo={p} aspect="aspect-[3/4]" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* 9장 이상: masonry columns */
+  return (
+    <div className="columns-2 sm:columns-3 lg:columns-4 gap-1.5">
+      {photos.map((p) => (
+        <div key={p.id} className="break-inside-avoid mb-1.5">
+          <PhotoCard photo={p} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── 카드 ──────────────────────────────────────────────────── */
+function PhotoCard({
+  photo,
+  aspect,
+  className = "",
+}: {
+  photo: Photo;
+  aspect?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`group relative overflow-hidden bg-white/4 ${aspect ?? ""} ${className}`}>
       <Image
         src={photo.url}
-        alt={photo.person ?? "gallery photo"}
-        width={480}
-        height={720}
-        className="w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+        alt={photo.person ?? "photo"}
+        fill={!!aspect}
+        width={aspect ? undefined : 480}
+        height={aspect ? undefined : 640}
+        className={`object-cover transition-transform duration-500 group-hover:scale-[1.04] ${aspect ? "" : "w-full"}`}
         unoptimized
       />
-      {/* 호버 오버레이 */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-transparent
+      {/* hover overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent
                       opacity-0 group-hover:opacity-100 transition-opacity duration-300
                       flex items-end p-3 pointer-events-none">
-        <div className="space-y-0.5">
+        <div>
           {photo.person && (
             <p className="text-white text-xs font-medium leading-snug">{photo.person}</p>
           )}
           {photo.date && (
-            <p className="text-white/40 text-[10px]">{photo.date.slice(0, 10)}</p>
+            <p className="text-white/40 text-[10px] mt-0.5">{photo.date.slice(0, 10)}</p>
           )}
         </div>
       </div>

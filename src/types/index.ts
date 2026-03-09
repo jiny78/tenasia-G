@@ -17,3 +17,9 @@ export interface DateEntry {
   month: number;
   count: number;
 }
+
+export interface GalleryEvent {
+  name: string;
+  year: number | null;
+  count: number;
+}
