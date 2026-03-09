@@ -4,12 +4,14 @@ import { useRef, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Photo } from "@/types";
 import Lightbox from "@/components/Lightbox";
+import { ThemeKey } from "@/app/page";
 
 interface Props {
   photos: Photo[];
   loading: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
+  theme: ThemeKey;
 }
 
 interface Section {
@@ -40,9 +42,10 @@ function buildSections(photos: Photo[]): Section[] {
   });
 }
 
-export default function PhotoGrid({ photos, loading, hasMore, onLoadMore }: Props) {
+export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme }: Props) {
   const sentinel = useRef<HTMLDivElement>(null);
   const [lbIndex, setLbIndex] = useState<number | null>(null);
+  const isDark = theme === "black" || theme === "charcoal";
 
   useEffect(() => {
     const el = sentinel.current;
@@ -57,7 +60,6 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore }: Prop
 
   const sections = useMemo(() => buildSections(photos), [photos]);
 
-  // 전체 photos에서 섹션별 인덱스 오프셋 계산
   const sectionOffsets = useMemo(() => {
     const offsets: number[] = [];
     let offset = 0;
@@ -70,7 +72,7 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore }: Prop
 
   if (!loading && photos.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-40 gap-3 text-white/15 select-none">
+      <div className={`flex flex-col items-center justify-center py-40 gap-3 select-none ${isDark ? "text-white/15" : "text-black/15"}`}>
         <span className="text-5xl font-thin">◻</span>
         <span className="text-xs tracking-[0.4em] uppercase">No Photos</span>
       </div>
@@ -84,6 +86,7 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore }: Prop
           key={sec.key}
           section={sec}
           offset={sectionOffsets[si]}
+          isDark={isDark}
           onOpen={(i) => setLbIndex(i)}
         />
       ))}
@@ -98,7 +101,7 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore }: Prop
       <div ref={sentinel} className="h-2" />
       {loading && (
         <div className="flex justify-center py-16">
-          <div className="w-4 h-4 border border-white/15 border-t-white/50 rounded-full animate-spin" />
+          <div className={`w-4 h-4 border rounded-full animate-spin ${isDark ? "border-white/15 border-t-white/50" : "border-black/15 border-t-black/50"}`} />
         </div>
       )}
     </div>
@@ -107,37 +110,43 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore }: Prop
 
 /* ─── 섹션 레이아웃 ─────────────────────────────────────────── */
 function PhotoSection({
-  section, offset, onOpen,
+  section, offset, isDark, onOpen,
 }: {
   section: Section;
   offset: number;
+  isDark: boolean;
   onOpen: (globalIndex: number) => void;
 }) {
   const { title, date, photos } = section;
   const open = (localIndex: number) => onOpen(offset + localIndex);
 
+  const borderCls = isDark ? "border-white/8"    : "border-black/8";
+  const titleCls  = isDark ? "text-white/85"      : "text-black/80";
+  const dateCls   = isDark ? "text-white/30"      : "text-black/40";
+  const countCls  = isDark ? "text-white/18"      : "text-black/25";
+
   return (
     <div className="mb-20">
-      <div className="flex items-end justify-between mb-5 pb-3 border-b border-white/8">
-        <h2 className="text-xl font-light tracking-wide text-white/85 leading-none">{title}</h2>
+      <div className={`flex items-end justify-between mb-5 pb-3 border-b ${borderCls}`}>
+        <h2 className={`text-xl font-light tracking-wide leading-none ${titleCls}`}>{title}</h2>
         <div className="text-right">
-          <p className="text-xs text-white/30 tabular-nums">{date}</p>
-          <p className="text-[10px] text-white/18 mt-0.5">{photos.length} photos</p>
+          <p className={`text-xs tabular-nums ${dateCls}`}>{date}</p>
+          <p className={`text-[10px] mt-0.5 ${countCls}`}>{photos.length} photos</p>
         </div>
       </div>
-      <BookLayout photos={photos} onOpen={open} />
+      <BookLayout photos={photos} isDark={isDark} onOpen={open} />
     </div>
   );
 }
 
 /* ─── 포토북 그리드 배치 ─────────────────────────────────────── */
-function BookLayout({ photos, onOpen }: { photos: Photo[]; onOpen: (i: number) => void }) {
+function BookLayout({ photos, isDark, onOpen }: { photos: Photo[]; isDark: boolean; onOpen: (i: number) => void }) {
   const n = photos.length;
 
   if (n === 1) {
     return (
       <div className="max-w-2xl mx-auto">
-        <PhotoCard photo={photos[0]} aspect="aspect-[4/3]" onClick={() => onOpen(0)} />
+        <PhotoCard photo={photos[0]} aspect="aspect-[4/3]" isDark={isDark} onClick={() => onOpen(0)} />
       </div>
     );
   }
@@ -146,7 +155,7 @@ function BookLayout({ photos, onOpen }: { photos: Photo[]; onOpen: (i: number) =
     return (
       <div className="grid grid-cols-2 gap-1.5">
         {photos.map((p, i) => (
-          <PhotoCard key={p.id} photo={p} aspect="aspect-[3/4]" onClick={() => onOpen(i)} />
+          <PhotoCard key={p.id} photo={p} aspect="aspect-[3/4]" isDark={isDark} onClick={() => onOpen(i)} />
         ))}
       </div>
     );
@@ -155,9 +164,9 @@ function BookLayout({ photos, onOpen }: { photos: Photo[]; onOpen: (i: number) =
   if (n === 3) {
     return (
       <div className="grid grid-cols-2 gap-1.5">
-        <PhotoCard photo={photos[0]} aspect="aspect-[3/4]" className="row-span-2" onClick={() => onOpen(0)} />
-        <PhotoCard photo={photos[1]} aspect="aspect-[3/4]" onClick={() => onOpen(1)} />
-        <PhotoCard photo={photos[2]} aspect="aspect-[3/4]" onClick={() => onOpen(2)} />
+        <PhotoCard photo={photos[0]} aspect="aspect-[3/4]" className="row-span-2" isDark={isDark} onClick={() => onOpen(0)} />
+        <PhotoCard photo={photos[1]} aspect="aspect-[3/4]" isDark={isDark} onClick={() => onOpen(1)} />
+        <PhotoCard photo={photos[2]} aspect="aspect-[3/4]" isDark={isDark} onClick={() => onOpen(2)} />
       </div>
     );
   }
@@ -169,11 +178,11 @@ function BookLayout({ photos, onOpen }: { photos: Photo[]; onOpen: (i: number) =
     return (
       <div className="flex gap-1.5">
         <div className="w-[45%] shrink-0">
-          <PhotoCard photo={hero} aspect="aspect-[2/3]" onClick={() => onOpen(0)} />
+          <PhotoCard photo={hero} aspect="aspect-[2/3]" isDark={isDark} onClick={() => onOpen(0)} />
         </div>
         <div className="flex-1 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${rightCols}, 1fr)` }}>
           {rest.map((p, i) => (
-            <PhotoCard key={p.id} photo={p} aspect="aspect-[3/4]" onClick={() => onOpen(i + 1)} />
+            <PhotoCard key={p.id} photo={p} aspect="aspect-[3/4]" isDark={isDark} onClick={() => onOpen(i + 1)} />
           ))}
         </div>
       </div>
@@ -184,7 +193,7 @@ function BookLayout({ photos, onOpen }: { photos: Photo[]; onOpen: (i: number) =
     <div className="columns-2 sm:columns-3 lg:columns-4 gap-1.5">
       {photos.map((p, i) => (
         <div key={p.id} className="break-inside-avoid mb-1.5">
-          <PhotoCard photo={p} onClick={() => onOpen(i)} />
+          <PhotoCard photo={p} isDark={isDark} onClick={() => onOpen(i)} />
         </div>
       ))}
     </div>
@@ -196,17 +205,20 @@ function PhotoCard({
   photo,
   aspect,
   className = "",
+  isDark,
   onClick,
 }: {
   photo: Photo;
   aspect?: string;
   className?: string;
+  isDark: boolean;
   onClick?: () => void;
 }) {
+  const bgCls = isDark ? "bg-white/4" : "bg-black/5";
   return (
     <div
       onClick={onClick}
-      className={`group relative overflow-hidden bg-white/4 cursor-pointer ${aspect ?? ""} ${className}`}
+      className={`group relative overflow-hidden cursor-pointer ${bgCls} ${aspect ?? ""} ${className}`}
     >
       <Image
         src={photo.url}
