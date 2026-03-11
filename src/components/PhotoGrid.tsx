@@ -1,10 +1,12 @@
 "use client";
 
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import Image from "next/image";
 import { Photo } from "@/types";
 import Lightbox from "@/components/Lightbox";
+import PurchaseModal from "@/components/PurchaseModal";
 import { ThemeKey } from "@/app/page";
+import { getCredits, useCredit } from "@/lib/credits";
 
 interface Props {
   photos: Photo[];
@@ -12,6 +14,7 @@ interface Props {
   hasMore: boolean;
   onLoadMore: () => void;
   theme: ThemeKey;
+  onCreditsChange?: (n: number) => void;
 }
 
 interface Section {
@@ -21,7 +24,22 @@ interface Section {
   photos: Photo[];
 }
 
-/* 같은 role_tag + 연월 기준으로 섹션 묶기 */
+/* ─── TENASIA 워터마크 ───────────────────────────────────────── */
+const WM_SVG = encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="140">` +
+  `<text x="160" y="70" text-anchor="middle" dominant-baseline="middle" ` +
+  `transform="rotate(-28 160 70)" fill="rgba(255,255,255,0.11)" ` +
+  `font-size="24" font-family="Arial Black,Arial,sans-serif" font-weight="900" ` +
+  `letter-spacing="12">TENASIA</text></svg>`
+);
+const wmStyle: React.CSSProperties = {
+  backgroundImage: `url("data:image/svg+xml,${WM_SVG}")`,
+  backgroundRepeat: "repeat",
+};
+
+const noCtx = (e: React.MouseEvent) => e.preventDefault();
+
+/* ─── 섹션 빌드 ──────────────────────────────────────────────── */
 function buildSections(photos: Photo[]): Section[] {
   const map = new Map<string, Photo[]>();
   for (const p of photos) {
@@ -33,18 +51,14 @@ function buildSections(photos: Photo[]): Section[] {
     const [role, ym] = k.split("||");
     const [y, m] = (ym ?? "").split("-");
     const dateLabel = y && m ? `${y}.${m.padStart(2, "0")}` : y ?? "";
-    return {
-      key: k,
-      title: role || "Gallery",
-      date: dateLabel,
-      photos: ps,
-    };
+    return { key: k, title: role || "Gallery", date: dateLabel, photos: ps };
   });
 }
 
-export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme }: Props) {
+export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme, onCreditsChange }: Props) {
   const sentinel = useRef<HTMLDivElement>(null);
   const [lbIndex, setLbIndex] = useState<number | null>(null);
+  const [showPurchase, setShowPurchase] = useState(false);
   const isDark = theme === "black" || theme === "charcoal";
 
   useEffect(() => {
@@ -59,16 +73,21 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme 
   }, [hasMore, loading, onLoadMore]);
 
   const sections = useMemo(() => buildSections(photos), [photos]);
-
   const sectionOffsets = useMemo(() => {
     const offsets: number[] = [];
     let offset = 0;
-    for (const sec of sections) {
-      offsets.push(offset);
-      offset += sec.photos.length;
-    }
+    for (const sec of sections) { offsets.push(offset); offset += sec.photos.length; }
     return offsets;
   }, [sections]);
+
+  const handleDownload = useCallback(async (photo: Photo) => {
+    const c = getCredits();
+    if (c <= 0) { setShowPurchase(true); return; }
+    useCredit();
+    onCreditsChange?.(getCredits());
+    // 다운로드 API 경유 (원본 고화질)
+    window.location.href = `/api/download?url=${encodeURIComponent(photo.url)}`;
+  }, [onCreditsChange]);
 
   if (!loading && photos.length === 0) {
     return (
@@ -80,50 +99,56 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme 
   }
 
   return (
-    <div>
-      {sections.map((sec, si) => (
-        <PhotoSection
-          key={sec.key}
-          section={sec}
-          offset={sectionOffsets[si]}
-          isDark={isDark}
-          onOpen={(i) => setLbIndex(i)}
-        />
-      ))}
-      {lbIndex !== null && (
-        <Lightbox
-          photos={photos}
-          index={lbIndex}
-          onClose={() => setLbIndex(null)}
-          onNav={setLbIndex}
-        />
-      )}
-      <div ref={sentinel} className="h-2" />
-      {loading && (
-        <div className="flex justify-center py-16">
-          <div className={`w-4 h-4 border rounded-full animate-spin ${isDark ? "border-white/15 border-t-white/50" : "border-black/15 border-t-black/50"}`} />
-        </div>
-      )}
-    </div>
+    <>
+      <div>
+        {sections.map((sec, si) => (
+          <PhotoSection
+            key={sec.key}
+            section={sec}
+            offset={sectionOffsets[si]}
+            isDark={isDark}
+            onOpen={(i) => setLbIndex(i)}
+            onDownload={handleDownload}
+          />
+        ))}
+        {lbIndex !== null && (
+          <Lightbox
+            photos={photos}
+            index={lbIndex}
+            onClose={() => setLbIndex(null)}
+            onNav={setLbIndex}
+            onDownload={handleDownload}
+          />
+        )}
+        <div ref={sentinel} className="h-2" />
+        {loading && (
+          <div className="flex justify-center py-16">
+            <div className={`w-4 h-4 border rounded-full animate-spin ${isDark ? "border-white/15 border-t-white/50" : "border-black/15 border-t-black/50"}`} />
+          </div>
+        )}
+      </div>
+
+      {showPurchase && <PurchaseModal onClose={() => setShowPurchase(false)} />}
+    </>
   );
 }
 
-/* ─── 섹션 레이아웃 ─────────────────────────────────────────── */
+/* ─── 섹션 ───────────────────────────────────────────────────── */
 function PhotoSection({
-  section, offset, isDark, onOpen,
+  section, offset, isDark, onOpen, onDownload,
 }: {
   section: Section;
   offset: number;
   isDark: boolean;
   onOpen: (globalIndex: number) => void;
+  onDownload: (photo: Photo) => void;
 }) {
   const { title, date, photos } = section;
-  const open = (localIndex: number) => onOpen(offset + localIndex);
-
-  const borderCls = isDark ? "border-white/8"    : "border-black/8";
-  const titleCls  = isDark ? "text-white/85"      : "text-black/80";
-  const dateCls   = isDark ? "text-white/30"      : "text-black/40";
-  const countCls  = isDark ? "text-white/18"      : "text-black/25";
+  const open = (i: number) => onOpen(offset + i);
+  const borderCls = isDark ? "border-white/8"  : "border-black/8";
+  const titleCls  = isDark ? "text-white/85"    : "text-black/80";
+  const dateCls   = isDark ? "text-white/30"    : "text-black/40";
+  const countCls  = isDark ? "text-white/18"    : "text-black/25";
 
   return (
     <div className="mb-20">
@@ -134,56 +159,51 @@ function PhotoSection({
           <p className={`text-[10px] mt-0.5 ${countCls}`}>{photos.length} photos</p>
         </div>
       </div>
-      <BookLayout photos={photos} isDark={isDark} onOpen={open} />
+      <BookLayout photos={photos} isDark={isDark} onOpen={open} onDownload={onDownload} />
     </div>
   );
 }
 
-/* ─── 포토북 그리드 배치 ─────────────────────────────────────── */
-function BookLayout({ photos, isDark, onOpen }: { photos: Photo[]; isDark: boolean; onOpen: (i: number) => void }) {
+/* ─── 포토북 그리드 ──────────────────────────────────────────── */
+function BookLayout({ photos, isDark, onOpen, onDownload }: {
+  photos: Photo[];
+  isDark: boolean;
+  onOpen: (i: number) => void;
+  onDownload: (photo: Photo) => void;
+}) {
   const n = photos.length;
+  const card = (p: Photo, i: number, aspect?: string) => (
+    <PhotoCard key={p.id} photo={p} aspect={aspect} isDark={isDark}
+      onClick={() => onOpen(i)} onDownload={() => onDownload(p)} />
+  );
 
-  if (n === 1) {
-    return (
-      <div className="max-w-2xl mx-auto">
-        <PhotoCard photo={photos[0]} aspect="aspect-[4/3]" isDark={isDark} onClick={() => onOpen(0)} />
-      </div>
-    );
-  }
+  if (n === 1) return <div className="max-w-2xl mx-auto">{card(photos[0], 0, "aspect-[4/3]")}</div>;
 
-  if (n === 2) {
-    return (
-      <div className="grid grid-cols-2 gap-1.5">
-        {photos.map((p, i) => (
-          <PhotoCard key={p.id} photo={p} aspect="aspect-[3/4]" isDark={isDark} onClick={() => onOpen(i)} />
-        ))}
-      </div>
-    );
-  }
+  if (n === 2) return (
+    <div className="grid grid-cols-2 gap-1.5">
+      {photos.map((p, i) => card(p, i, "aspect-[3/4]"))}
+    </div>
+  );
 
-  if (n === 3) {
-    return (
-      <div className="grid grid-cols-2 gap-1.5">
-        <PhotoCard photo={photos[0]} aspect="aspect-[3/4]" className="row-span-2" isDark={isDark} onClick={() => onOpen(0)} />
-        <PhotoCard photo={photos[1]} aspect="aspect-[3/4]" isDark={isDark} onClick={() => onOpen(1)} />
-        <PhotoCard photo={photos[2]} aspect="aspect-[3/4]" isDark={isDark} onClick={() => onOpen(2)} />
-      </div>
-    );
-  }
+  if (n === 3) return (
+    <div className="grid grid-cols-2 gap-1.5">
+      <PhotoCard photo={photos[0]} aspect="aspect-[3/4]" className="row-span-2"
+        isDark={isDark} onClick={() => onOpen(0)} onDownload={() => onDownload(photos[0])} />
+      {photos.slice(1).map((p, i) => card(p, i + 1, "aspect-[3/4]"))}
+    </div>
+  );
 
   if (n <= 8) {
-    const hero = photos[0];
     const rest = photos.slice(1);
     const rightCols = Math.min(2, Math.ceil(rest.length / 2));
     return (
       <div className="flex gap-1.5">
         <div className="w-[45%] shrink-0">
-          <PhotoCard photo={hero} aspect="aspect-[2/3]" isDark={isDark} onClick={() => onOpen(0)} />
+          <PhotoCard photo={photos[0]} aspect="aspect-[2/3]" isDark={isDark}
+            onClick={() => onOpen(0)} onDownload={() => onDownload(photos[0])} />
         </div>
         <div className="flex-1 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${rightCols}, 1fr)` }}>
-          {rest.map((p, i) => (
-            <PhotoCard key={p.id} photo={p} aspect="aspect-[3/4]" isDark={isDark} onClick={() => onOpen(i + 1)} />
-          ))}
+          {rest.map((p, i) => card(p, i + 1, "aspect-[3/4]"))}
         </div>
       </div>
     );
@@ -193,39 +213,23 @@ function BookLayout({ photos, isDark, onOpen }: { photos: Photo[]; isDark: boole
     <div className="columns-2 sm:columns-3 lg:columns-4 gap-1.5">
       {photos.map((p, i) => (
         <div key={p.id} className="break-inside-avoid mb-1.5">
-          <PhotoCard photo={p} isDark={isDark} onClick={() => onOpen(i)} />
+          <PhotoCard photo={p} isDark={isDark} onClick={() => onOpen(i)} onDownload={() => onDownload(p)} />
         </div>
       ))}
     </div>
   );
 }
 
-/* ─── 워터마크 스타일 ────────────────────────────────────────── */
-const WM_SVG = encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="210" height="95">' +
-  '<text x="-5" y="62" transform="rotate(-22)" fill="rgba(255,255,255,0.06)" ' +
-  'font-size="13" font-family="Arial, sans-serif" letter-spacing="3">TenAsia Gallery</text></svg>'
-);
-const wmStyle: React.CSSProperties = {
-  backgroundImage: `url("data:image/svg+xml,${WM_SVG}")`,
-  backgroundRepeat: "repeat",
-};
-
-const noCtx = (e: React.MouseEvent) => e.preventDefault();
-
-/* ─── 카드 ──────────────────────────────────────────────────── */
+/* ─── 카드 ───────────────────────────────────────────────────── */
 function PhotoCard({
-  photo,
-  aspect,
-  className = "",
-  isDark,
-  onClick,
+  photo, aspect, className = "", isDark, onClick, onDownload,
 }: {
   photo: Photo;
   aspect?: string;
   className?: string;
   isDark: boolean;
   onClick?: () => void;
+  onDownload: () => void;
 }) {
   const bgCls = isDark ? "bg-white/4" : "bg-black/5";
   return (
@@ -233,33 +237,47 @@ function PhotoCard({
       className={`photo-shield group relative overflow-hidden ${bgCls} ${aspect ?? ""} ${className}`}
       onContextMenu={noCtx}
     >
-      {/* 이미지: pointer-events-none으로 직접 우클릭 불가 */}
+      {/* 이미지 */}
       <Image
         src={photo.url}
         alt={photo.person ?? "photo"}
         fill={!!aspect}
         width={aspect ? undefined : 480}
         height={aspect ? undefined : 640}
-        className={`object-cover transition-transform duration-500 group-hover:scale-[1.04] select-none pointer-events-none ${aspect ? "" : "w-full"}`}
+        className={`object-cover transition-transform duration-500 group-hover:scale-[1.04]
+                    select-none pointer-events-none ${aspect ? "" : "w-full"}`}
         unoptimized
         draggable={false}
       />
-      {/* 워터마크 */}
+
+      {/* TENASIA 워터마크 */}
       <div className="absolute inset-0 pointer-events-none select-none" style={wmStyle} />
-      {/* hover 정보 */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent
+
+      {/* hover: 정보 + 다운로드 버튼 */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent
                       opacity-0 group-hover:opacity-100 transition-opacity duration-300
-                      flex items-end p-3 pointer-events-none select-none">
-        <div>
-          {photo.person && (
-            <p className="text-white text-xs font-medium leading-snug">{photo.person}</p>
-          )}
-          {photo.date && (
-            <p className="text-white/40 text-[10px] mt-0.5">{photo.date.slice(0, 10)}</p>
-          )}
+                      flex items-end justify-between p-3 pointer-events-none">
+        <div className="select-none">
+          {photo.person && <p className="text-white text-xs font-medium leading-snug">{photo.person}</p>}
+          {photo.date && <p className="text-white/40 text-[10px] mt-0.5">{photo.date.slice(0, 10)}</p>}
         </div>
+        {/* 다운로드 버튼 — pointer-events-auto로 클릭 활성화 */}
+        <button
+          className="pointer-events-auto w-8 h-8 rounded-full bg-white/15 hover:bg-white/30
+                     backdrop-blur-sm flex items-center justify-center transition-all duration-150
+                     border border-white/20"
+          onClick={(e) => { e.stopPropagation(); onDownload(); }}
+          onContextMenu={noCtx}
+          title="다운로드 (크레딧 필요)"
+          aria-label="다운로드"
+        >
+          <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2">
+            <path d="M7 2v7M4 6l3 3 3-3M2 11h10" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
       </div>
-      {/* 클릭 인터셉터: 최상단에서 클릭 전달 + 우클릭 차단 */}
+
+      {/* 클릭 인터셉터 (이미지 열기 + 우클릭 차단) */}
       <div
         className="absolute inset-0 z-10 cursor-pointer"
         onClick={onClick}

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import PhotoGrid from "@/components/PhotoGrid";
 import FilterBar from "@/components/FilterBar";
 import { Photo, Person, DateEntry, GalleryEvent } from "@/types";
+import { getCredits } from "@/lib/credits";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
@@ -53,11 +54,13 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [theme, setTheme] = useState<ThemeKey>("black");
+  const [credits, setCredits] = useState(0);
 
-  // localStorage에서 테마 복원
+  // localStorage에서 테마 + 크레딧 복원
   useEffect(() => {
     const saved = localStorage.getItem("tg-theme") as ThemeKey | null;
     if (saved && THEMES[saved]) setTheme(saved);
+    setCredits(getCredits());
   }, []);
 
   // 전역 저장 단축키 차단 (Ctrl+S, Ctrl+U)
@@ -147,9 +150,15 @@ export default function Home() {
             />
           </div>
 
-          {/* 우측: 카운트 + 테마 스와치 */}
+          {/* 우측: 다운로드 크레딧 + 카운트 + 테마 */}
           <div className="flex items-center gap-3 shrink-0">
-            <span className={`text-xs tabular-nums ${t.sub}`}>{total.toLocaleString()}</span>
+            {credits > 0 ? (
+              <span className="text-xs tabular-nums text-white bg-white/15 px-2 py-0.5 rounded-full">
+                ↓ {credits}
+              </span>
+            ) : (
+              <span className={`text-xs tabular-nums ${t.sub}`}>{total.toLocaleString()}</span>
+            )}
 
             {/* 테마 선택 */}
             <div className="flex gap-1.5">
@@ -179,6 +188,7 @@ export default function Home() {
           hasMore={photos.length < total}
           onLoadMore={() => fetchPhotos(filters, page + 1)}
           theme={theme}
+          onCreditsChange={setCredits}
         />
       </main>
     </div>
