@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── 사진 보호 ───────────────────────────────────────────────── */
+img {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none; /* iOS 길게 누르기 저장 방지 */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.photo-shield {
+  -webkit-touch-callout: none;
+  touch-action: pan-x pan-y;     /* 핀치줌은 허용, 길게 누르기 컨텍스트 방지 */
+}

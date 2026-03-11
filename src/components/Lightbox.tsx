@@ -33,6 +33,10 @@ export default function Lightbox({ photos, index, onClose, onNav }: Props) {
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowLeft") go(prev);
       if (e.key === "ArrowRight") go(next);
+      // 저장 단축키 차단
+      if ((e.ctrlKey || e.metaKey) && ["s", "S", "u", "U"].includes(e.key)) {
+        e.preventDefault();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -101,8 +105,11 @@ export default function Lightbox({ photos, index, onClose, onNav }: Props) {
         </button>
 
         {/* 사진 */}
-        <div className="relative max-h-full max-w-full flex items-center justify-center"
-             style={{ height: "calc(100vh - 160px)" }}>
+        <div
+          className="relative max-h-full max-w-full flex items-center justify-center photo-shield"
+          style={{ height: "calc(100vh - 160px)" }}
+          onContextMenu={(e) => e.preventDefault()}
+        >
           {!imgLoaded && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-5 h-5 border border-white/15 border-t-white/50 rounded-full animate-spin" />
@@ -114,13 +121,30 @@ export default function Lightbox({ photos, index, onClose, onNav }: Props) {
             alt={photo.person ?? "photo"}
             width={1200}
             height={900}
-            className={`max-h-full max-w-full object-contain transition-opacity duration-300 select-none ${
+            className={`max-h-full max-w-full object-contain transition-opacity duration-300 select-none pointer-events-none ${
               imgLoaded ? "opacity-100" : "opacity-0"
             }`}
             style={{ maxHeight: "calc(100vh - 160px)" }}
             onLoad={() => setImgLoaded(true)}
             unoptimized
             draggable={false}
+          />
+          {/* 워터마크 */}
+          <div
+            className="absolute inset-0 pointer-events-none select-none"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="260" height="110">' +
+                '<text x="-5" y="70" transform="rotate(-22)" fill="rgba(255,255,255,0.05)" ' +
+                'font-size="15" font-family="Arial, sans-serif" letter-spacing="4">TenAsia Gallery</text></svg>'
+              )}")`,
+              backgroundRepeat: "repeat",
+            }}
+          />
+          {/* 우클릭 차단 오버레이 */}
+          <div
+            className="absolute inset-0 z-10"
+            onContextMenu={(e) => e.preventDefault()}
           />
         </div>
 

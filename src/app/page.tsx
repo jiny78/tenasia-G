@@ -60,6 +60,17 @@ export default function Home() {
     if (saved && THEMES[saved]) setTheme(saved);
   }, []);
 
+  // 전역 저장 단축키 차단 (Ctrl+S, Ctrl+U)
+  useEffect(() => {
+    const block = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && ["s", "S", "u", "U"].includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("keydown", block);
+    return () => document.removeEventListener("keydown", block);
+  }, []);
+
   const changeTheme = (k: ThemeKey) => {
     setTheme(k);
     localStorage.setItem("tg-theme", k);

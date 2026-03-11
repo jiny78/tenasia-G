@@ -200,6 +200,19 @@ function BookLayout({ photos, isDark, onOpen }: { photos: Photo[]; isDark: boole
   );
 }
 
+/* ─── 워터마크 스타일 ────────────────────────────────────────── */
+const WM_SVG = encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="210" height="95">' +
+  '<text x="-5" y="62" transform="rotate(-22)" fill="rgba(255,255,255,0.06)" ' +
+  'font-size="13" font-family="Arial, sans-serif" letter-spacing="3">TenAsia Gallery</text></svg>'
+);
+const wmStyle: React.CSSProperties = {
+  backgroundImage: `url("data:image/svg+xml,${WM_SVG}")`,
+  backgroundRepeat: "repeat",
+};
+
+const noCtx = (e: React.MouseEvent) => e.preventDefault();
+
 /* ─── 카드 ──────────────────────────────────────────────────── */
 function PhotoCard({
   photo,
@@ -217,22 +230,26 @@ function PhotoCard({
   const bgCls = isDark ? "bg-white/4" : "bg-black/5";
   return (
     <div
-      onClick={onClick}
-      className={`group relative overflow-hidden cursor-pointer ${bgCls} ${aspect ?? ""} ${className}`}
+      className={`photo-shield group relative overflow-hidden ${bgCls} ${aspect ?? ""} ${className}`}
+      onContextMenu={noCtx}
     >
+      {/* 이미지: pointer-events-none으로 직접 우클릭 불가 */}
       <Image
         src={photo.url}
         alt={photo.person ?? "photo"}
         fill={!!aspect}
         width={aspect ? undefined : 480}
         height={aspect ? undefined : 640}
-        className={`object-cover transition-transform duration-500 group-hover:scale-[1.04] ${aspect ? "" : "w-full"}`}
+        className={`object-cover transition-transform duration-500 group-hover:scale-[1.04] select-none pointer-events-none ${aspect ? "" : "w-full"}`}
         unoptimized
+        draggable={false}
       />
-      {/* hover overlay */}
+      {/* 워터마크 */}
+      <div className="absolute inset-0 pointer-events-none select-none" style={wmStyle} />
+      {/* hover 정보 */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent
                       opacity-0 group-hover:opacity-100 transition-opacity duration-300
-                      flex items-end p-3 pointer-events-none">
+                      flex items-end p-3 pointer-events-none select-none">
         <div>
           {photo.person && (
             <p className="text-white text-xs font-medium leading-snug">{photo.person}</p>
@@ -242,6 +259,12 @@ function PhotoCard({
           )}
         </div>
       </div>
+      {/* 클릭 인터셉터: 최상단에서 클릭 전달 + 우클릭 차단 */}
+      <div
+        className="absolute inset-0 z-10 cursor-pointer"
+        onClick={onClick}
+        onContextMenu={noCtx}
+      />
     </div>
   );
 }
