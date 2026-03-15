@@ -4,9 +4,8 @@ import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import Image from "next/image";
 import { Photo } from "@/types";
 import Lightbox from "@/components/Lightbox";
-import PurchaseModal from "@/components/PurchaseModal";
 import { ThemeKey } from "@/app/page";
-import { getCredits, useCredit } from "@/lib/credits";
+import { getCredits } from "@/lib/credits";
 
 interface Props {
   photos: Photo[];
@@ -58,8 +57,13 @@ function buildSections(photos: Photo[]): Section[] {
 export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme, onCreditsChange }: Props) {
   const sentinel = useRef<HTMLDivElement>(null);
   const [lbIndex, setLbIndex] = useState<number | null>(null);
-  const [showPurchase, setShowPurchase] = useState(false);
+  const [notice, setNotice] = useState("");
   const isDark = theme === "black" || theme === "charcoal";
+
+  const showNotice = (msg: string) => {
+    setNotice(msg);
+    setTimeout(() => setNotice(""), 2500);
+  };
 
   useEffect(() => {
     const el = sentinel.current;
@@ -80,13 +84,10 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
     return offsets;
   }, [sections]);
 
-  const handleDownload = useCallback(async (photo: Photo) => {
-    const c = getCredits();
-    if (c <= 0) { setShowPurchase(true); return; }
-    useCredit();
+  const handleDownload = useCallback((_photo: Photo) => {
+    // 결제 시스템 연동 전 — 준비 중 안내
+    showNotice("다운로드 서비스를 준비 중입니다.");
     onCreditsChange?.(getCredits());
-    // 다운로드 API 경유 (원본 고화질)
-    window.location.href = `/api/download?url=${encodeURIComponent(photo.url)}`;
   }, [onCreditsChange]);
 
   if (!loading && photos.length === 0) {
@@ -128,7 +129,13 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
         )}
       </div>
 
-      {showPurchase && <PurchaseModal onClose={() => setShowPurchase(false)} />}
+      {notice && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-black/80 text-white
+                        text-xs px-4 py-2 rounded-full backdrop-blur-sm pointer-events-none
+                        transition-opacity duration-300">
+          {notice}
+        </div>
+      )}
     </>
   );
 }

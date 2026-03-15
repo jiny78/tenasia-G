@@ -8,14 +8,25 @@ import { getCredits } from "@/lib/credits";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
-const R2_BASE = process.env.NEXT_PUBLIC_R2_BASE ?? "";
 
 const apiHeaders: HeadersInit = API_KEY ? { "X-API-Key": API_KEY } : {};
 
+// R2 URL을 서버 프록시 경로로 변환 — 원본 버킷 주소 클라이언트 미노출
 function resolveUrl(url: string): string {
   if (!url) return "";
-  if (url.startsWith("http")) return url;
-  return `${R2_BASE}${url.startsWith("/") ? "" : "/"}${url}`;
+  if (url.startsWith("/api/image")) return url;
+  if (url.startsWith("http")) {
+    try {
+      const u = new URL(url);
+      const path = u.pathname.slice(1); // 앞의 / 제거
+      return `/api/image?path=${encodeURIComponent(path)}`;
+    } catch {
+      return "";
+    }
+  }
+  // 상대 경로
+  const path = url.startsWith("/") ? url.slice(1) : url;
+  return `/api/image?path=${encodeURIComponent(path)}`;
 }
 
 export type Filters = {
