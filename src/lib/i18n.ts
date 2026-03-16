@@ -49,6 +49,17 @@ type TranslationSet = {
   comingSoonDesc: string;
   refundPolicy: string;
   termsNote: string;
+  // Policies & Footer
+  policiesTitle: string;
+  policiesPrivacy: string;
+  policiesCopyright: string;
+  policiesSales: string;
+  policiesSecurity: string;
+  policiesRefund: string;
+  policiesLastUpdated: string;
+  policiesTableOfContents: string;
+  policiesBackToAll: string;
+  footerLegal: string;
 };
 
 export const TRANSLATIONS: Record<Lang, TranslationSet> = {
@@ -88,6 +99,16 @@ export const TRANSLATIONS: Record<Lang, TranslationSet> = {
     comingSoonDesc: "Payment system is being prepared. Download packs will be available soon.",
     refundPolicy: "No refunds after credits are used. Unused credits are non-transferable.",
     termsNote: "Secure payment by Stripe · Credit card / Apple Pay / Google Pay",
+    policiesTitle: "Legal & Policies",
+    policiesPrivacy: "Privacy Policy",
+    policiesCopyright: "Copyright & Licensing",
+    policiesSales: "Sales Terms",
+    policiesSecurity: "Security Policy",
+    policiesRefund: "Refund Policy",
+    policiesLastUpdated: "Last updated",
+    policiesTableOfContents: "Table of Contents",
+    policiesBackToAll: "View All Policies",
+    footerLegal: "Legal",
   },
   ko: {
     gallery: "갤러리",
@@ -125,6 +146,16 @@ export const TRANSLATIONS: Record<Lang, TranslationSet> = {
     comingSoonDesc: "결제 시스템을 준비하고 있습니다. 곧 다운로드 팩 구매가 가능합니다.",
     refundPolicy: "사용된 크레딧은 환불되지 않습니다. 미사용 크레딧은 양도 불가합니다.",
     termsNote: "Stripe 보안 결제 · 신용카드 / Apple Pay / Google Pay",
+    policiesTitle: "법적 고지 및 정책",
+    policiesPrivacy: "개인정보 처리방침",
+    policiesCopyright: "저작권 및 라이선스",
+    policiesSales: "판매 약관",
+    policiesSecurity: "보안 정책",
+    policiesRefund: "환불 정책",
+    policiesLastUpdated: "최종 수정일",
+    policiesTableOfContents: "목차",
+    policiesBackToAll: "전체 정책 보기",
+    footerLegal: "법적 고지",
   },
 };
 
