@@ -75,8 +75,21 @@ export default function PurchaseModal({ onClose }: Props) {
         className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* 준비 중 배너 */}
+        <div className="mb-5 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5">
+          <span className="text-amber-400 text-sm mt-0.5">◐</span>
+          <div>
+            <p className="text-amber-400 text-xs font-semibold tracking-wide">
+              {tr.comingSoonBadge}
+            </p>
+            <p className="text-amber-400/70 text-[11px] mt-0.5 leading-relaxed">
+              {tr.comingSoonDesc}
+            </p>
+          </div>
+        </div>
+
         {/* 헤더 */}
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex items-start justify-between mb-5">
           <div>
             <h2 className="text-white text-lg font-semibold tracking-wide">
               {tr.downloadPack}
@@ -131,12 +144,18 @@ export default function PurchaseModal({ onClose }: Props) {
         </div>
 
         {error && (
-          <p className="mt-4 text-red-400 text-xs text-center">{error}</p>
+          <p className="mt-4 text-amber-400 text-xs text-center">{error}</p>
         )}
 
-        <p className="mt-5 text-white/20 text-[10px] text-center leading-relaxed">
-          {tr.stripeNote}
-        </p>
+        {/* 환불/결제 정책 */}
+        <div className="mt-5 pt-4 border-t border-white/8 space-y-1.5">
+          <p className="text-white/20 text-[10px] text-center leading-relaxed">
+            {tr.refundPolicy}
+          </p>
+          <p className="text-white/15 text-[10px] text-center leading-relaxed">
+            {tr.termsNote}
+          </p>
+        </div>
       </div>
     </div>
   );

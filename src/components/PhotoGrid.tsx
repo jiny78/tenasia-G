@@ -4,8 +4,8 @@ import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import Image from "next/image";
 import { Photo } from "@/types";
 import Lightbox from "@/components/Lightbox";
+import PurchaseModal from "@/components/PurchaseModal";
 import { ThemeKey } from "@/app/page";
-import { getCredits, useCredit } from "@/lib/credits";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
 
 interface Props {
@@ -60,13 +60,8 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
   const tr = TRANSLATIONS[lang];
   const sentinel = useRef<HTMLDivElement>(null);
   const [lbIndex, setLbIndex] = useState<number | null>(null);
-  const [notice, setNotice] = useState("");
+  const [showPurchase, setShowPurchase] = useState(false);
   const isDark = theme === "black" || theme === "charcoal";
-
-  const showNotice = (msg: string) => {
-    setNotice(msg);
-    setTimeout(() => setNotice(""), 2500);
-  };
 
   useEffect(() => {
     const el = sentinel.current;
@@ -87,25 +82,10 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
     return offsets;
   }, [sections]);
 
-  const handleDownload = useCallback(async (photo: Photo) => {
-    const c = getCredits();
-    if (c <= 0) {
-      showNotice(tr.downloadCreditNote);
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/request-download?url=${encodeURIComponent(photo.url)}`);
-      if (!res.ok) { showNotice(tr.downloadCreditNote); return; }
-      const { token } = await res.json();
-
-      useCredit();
-      onCreditsChange?.(getCredits());
-      window.location.href = `/api/download?url=${encodeURIComponent(photo.url)}&token=${token}`;
-    } catch {
-      console.error("Download token request failed");
-    }
-  }, [onCreditsChange, tr.downloadCreditNote]);
+  // 결제 시스템 준비 중 — 다운로드 클릭 시 구매 모달 표시
+  const handleDownload = useCallback((_photo: Photo) => {
+    setShowPurchase(true);
+  }, []);
 
   if (!loading && photos.length === 0) {
     return (
@@ -146,13 +126,7 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
         )}
       </div>
 
-      {notice && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-black/80 text-white
-                        text-xs px-4 py-2 rounded-full backdrop-blur-sm pointer-events-none
-                        transition-opacity duration-300">
-          {notice}
-        </div>
-      )}
+      {showPurchase && <PurchaseModal onClose={() => setShowPurchase(false)} />}
     </>
   );
 }
