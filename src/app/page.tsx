@@ -124,10 +124,10 @@ export default function Home() {
       <header className={`sticky top-0 z-30 ${t.header} backdrop-blur border-b ${t.border} transition-colors duration-300`}>
         <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center gap-6">
           {/* 로고 */}
-          <div className="flex items-baseline gap-2 shrink-0">
+          <a href="/" className="flex items-baseline gap-2 shrink-0 hover:opacity-80 transition-opacity">
             <span className="text-base font-bold tracking-[0.15em] uppercase">Tenasia</span>
             <span className={`text-[10px] tracking-[0.4em] uppercase ${t.sub}`}>{tr.gallery}</span>
-          </div>
+          </a>
 
           {/* 필터 */}
           <div className="flex-1 min-w-0">
