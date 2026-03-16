@@ -43,8 +43,8 @@ export default function Footer() {
   ];
 
   return (
-    <footer className={`${t.bg} ${t.text} border-t ${t.border} transition-colors duration-300`}>
-      <div className="max-w-screen-2xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <footer className={`fixed bottom-0 left-0 right-0 z-20 ${t.bg}/90 ${t.text} border-t ${t.border} backdrop-blur-sm transition-colors duration-300`}>
+      <div className="max-w-screen-2xl mx-auto px-6 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <p className={`text-xs ${t.sub} shrink-0`}>
           © 2026 TenAsia Media Corp. All rights reserved.
         </p>

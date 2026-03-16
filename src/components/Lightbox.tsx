@@ -8,7 +8,7 @@ import { useLang, TRANSLATIONS } from "@/lib/i18n";
 const WM_SVG = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="150">` +
   `<text x="180" y="75" text-anchor="middle" dominant-baseline="middle" ` +
-  `transform="rotate(-28 180 75)" fill="rgba(255,255,255,0.07)" ` +
+  `transform="rotate(-28 180 75)" fill="rgba(255,255,255,0.20)"` +
   `font-size="26" font-family="Arial Black,Arial,sans-serif" font-weight="900" ` +
   `letter-spacing="14">TENASIA</text></svg>`
 );

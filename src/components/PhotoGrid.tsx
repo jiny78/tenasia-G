@@ -28,7 +28,7 @@ interface Section {
 const WM_SVG = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="140">` +
   `<text x="160" y="70" text-anchor="middle" dominant-baseline="middle" ` +
-  `transform="rotate(-28 160 70)" fill="rgba(255,255,255,0.11)" ` +
+  `transform="rotate(-28 160 70)" fill="rgba(255,255,255,0.22)"` +
   `font-size="24" font-family="Arial Black,Arial,sans-serif" font-weight="900" ` +
   `letter-spacing="12">TENASIA</text></svg>`
 );
@@ -159,22 +159,24 @@ function PhotoSection({
           <p className={`text-[10px] mt-0.5 ${countCls}`}>{tr.photosCount(photos.length)}</p>
         </div>
       </div>
-      <BookLayout photos={photos} isDark={isDark} onOpen={open} onDownload={onDownload} />
+      <BookLayout photos={photos} isDark={isDark} onOpen={open} onDownload={onDownload} sectionOffset={offset} />
     </div>
   );
 }
 
 /* ─── 포토북 그리드 ──────────────────────────────────────────── */
-function BookLayout({ photos, isDark, onOpen, onDownload }: {
+function BookLayout({ photos, isDark, onOpen, onDownload, sectionOffset }: {
   photos: Photo[];
   isDark: boolean;
   onOpen: (i: number) => void;
   onDownload: (photo: Photo) => void;
+  sectionOffset: number;
 }) {
   const n = photos.length;
   const card = (p: Photo, i: number, aspect?: string) => (
     <PhotoCard key={p.id} photo={p} aspect={aspect} isDark={isDark}
-      onClick={() => onOpen(i)} onDownload={() => onDownload(p)} />
+      onClick={() => onOpen(i)} onDownload={() => onDownload(p)}
+      priority={sectionOffset + i < 4} />
   );
 
   if (n === 1) return <div className="max-w-2xl mx-auto">{card(photos[0], 0, "aspect-[4/3]")}</div>;
@@ -188,7 +190,8 @@ function BookLayout({ photos, isDark, onOpen, onDownload }: {
   if (n === 3) return (
     <div className="grid grid-cols-2 gap-1.5">
       <PhotoCard photo={photos[0]} aspect="aspect-[3/4]" className="row-span-2"
-        isDark={isDark} onClick={() => onOpen(0)} onDownload={() => onDownload(photos[0])} />
+        isDark={isDark} onClick={() => onOpen(0)} onDownload={() => onDownload(photos[0])}
+        priority={sectionOffset < 4} />
       {photos.slice(1).map((p, i) => card(p, i + 1, "aspect-[3/4]"))}
     </div>
   );
@@ -200,7 +203,8 @@ function BookLayout({ photos, isDark, onOpen, onDownload }: {
       <div className="flex gap-1.5">
         <div className="w-[45%] shrink-0">
           <PhotoCard photo={photos[0]} aspect="aspect-[2/3]" isDark={isDark}
-            onClick={() => onOpen(0)} onDownload={() => onDownload(photos[0])} />
+            onClick={() => onOpen(0)} onDownload={() => onDownload(photos[0])}
+            priority={sectionOffset < 4} />
         </div>
         <div className="flex-1 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${rightCols}, 1fr)` }}>
           {rest.map((p, i) => card(p, i + 1, "aspect-[3/4]"))}
@@ -222,7 +226,7 @@ function BookLayout({ photos, isDark, onOpen, onDownload }: {
 
 /* ─── 카드 ───────────────────────────────────────────────────── */
 function PhotoCard({
-  photo, aspect, className = "", isDark, onClick, onDownload,
+  photo, aspect, className = "", isDark, onClick, onDownload, priority = false,
 }: {
   photo: Photo;
   aspect?: string;
@@ -230,6 +234,7 @@ function PhotoCard({
   isDark: boolean;
   onClick?: () => void;
   onDownload: () => void;
+  priority?: boolean;
 }) {
   const { lang } = useLang();
   const tr = TRANSLATIONS[lang];
@@ -250,6 +255,8 @@ function PhotoCard({
                     select-none pointer-events-none ${aspect ? "" : "w-full"}`}
         unoptimized
         draggable={false}
+        priority={priority}
+        loading={priority ? undefined : "lazy"}
       />
 
       {/* TENASIA 워터마크 */}

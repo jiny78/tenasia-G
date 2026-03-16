@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(buffer, {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=86400, immutable",
+        "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
         "X-Content-Type-Options": "nosniff",
         "X-Robots-Tag": "noindex, noarchive",
       },
