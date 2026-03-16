@@ -28,7 +28,7 @@ interface Section {
 const WM_SVG = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="140">` +
   `<text x="160" y="70" text-anchor="middle" dominant-baseline="middle" ` +
-  `transform="rotate(-28 160 70)" fill="rgba(255,255,255,0.22)"` +
+  `transform="rotate(-28 160 70)" fill="rgba(255,255,255,0.22)" ` +
   `font-size="24" font-family="Arial Black,Arial,sans-serif" font-weight="900" ` +
   `letter-spacing="12">TENASIA</text></svg>`
 );
