@@ -5,7 +5,8 @@ import Image from "next/image";
 import { Photo } from "@/types";
 import Lightbox from "@/components/Lightbox";
 import { ThemeKey } from "@/app/page";
-import { getCredits } from "@/lib/credits";
+import { getCredits, useCredit } from "@/lib/credits";
+import { useLang, TRANSLATIONS } from "@/lib/i18n";
 
 interface Props {
   photos: Photo[];
@@ -55,6 +56,8 @@ function buildSections(photos: Photo[]): Section[] {
 }
 
 export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme, onCreditsChange }: Props) {
+  const { lang } = useLang();
+  const tr = TRANSLATIONS[lang];
   const sentinel = useRef<HTMLDivElement>(null);
   const [lbIndex, setLbIndex] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
@@ -84,17 +87,31 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
     return offsets;
   }, [sections]);
 
-  const handleDownload = useCallback((_photo: Photo) => {
-    // 결제 시스템 연동 전 — 준비 중 안내
-    showNotice("다운로드 서비스를 준비 중입니다.");
-    onCreditsChange?.(getCredits());
-  }, [onCreditsChange]);
+  const handleDownload = useCallback(async (photo: Photo) => {
+    const c = getCredits();
+    if (c <= 0) {
+      showNotice(tr.downloadCreditNote);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/request-download?url=${encodeURIComponent(photo.url)}`);
+      if (!res.ok) { showNotice(tr.downloadCreditNote); return; }
+      const { token } = await res.json();
+
+      useCredit();
+      onCreditsChange?.(getCredits());
+      window.location.href = `/api/download?url=${encodeURIComponent(photo.url)}&token=${token}`;
+    } catch {
+      console.error("Download token request failed");
+    }
+  }, [onCreditsChange, tr.downloadCreditNote]);
 
   if (!loading && photos.length === 0) {
     return (
       <div className={`flex flex-col items-center justify-center py-40 gap-3 select-none ${isDark ? "text-white/15" : "text-black/15"}`}>
         <span className="text-5xl font-thin">◻</span>
-        <span className="text-xs tracking-[0.4em] uppercase">No Photos</span>
+        <span className="text-xs tracking-[0.4em] uppercase">{tr.noPhotos}</span>
       </div>
     );
   }
@@ -150,6 +167,8 @@ function PhotoSection({
   onOpen: (globalIndex: number) => void;
   onDownload: (photo: Photo) => void;
 }) {
+  const { lang } = useLang();
+  const tr = TRANSLATIONS[lang];
   const { title, date, photos } = section;
   const open = (i: number) => onOpen(offset + i);
   const borderCls = isDark ? "border-white/8"  : "border-black/8";
@@ -163,7 +182,7 @@ function PhotoSection({
         <h2 className={`text-xl font-light tracking-wide leading-none ${titleCls}`}>{title}</h2>
         <div className="text-right">
           <p className={`text-xs tabular-nums ${dateCls}`}>{date}</p>
-          <p className={`text-[10px] mt-0.5 ${countCls}`}>{photos.length} photos</p>
+          <p className={`text-[10px] mt-0.5 ${countCls}`}>{tr.photosCount(photos.length)}</p>
         </div>
       </div>
       <BookLayout photos={photos} isDark={isDark} onOpen={open} onDownload={onDownload} />
@@ -238,6 +257,8 @@ function PhotoCard({
   onClick?: () => void;
   onDownload: () => void;
 }) {
+  const { lang } = useLang();
+  const tr = TRANSLATIONS[lang];
   const bgCls = isDark ? "bg-white/4" : "bg-black/5";
   return (
     <div
@@ -275,8 +296,8 @@ function PhotoCard({
                      border border-white/20"
           onClick={(e) => { e.stopPropagation(); onDownload(); }}
           onContextMenu={noCtx}
-          title="다운로드 (크레딧 필요)"
-          aria-label="다운로드"
+          title={tr.downloadCreditNote}
+          aria-label={tr.download}
         >
           <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2">
             <path d="M7 2v7M4 6l3 3 3-3M2 11h10" strokeLinecap="round" strokeLinejoin="round"/>

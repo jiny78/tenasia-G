@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Person, DateEntry, GalleryEvent } from "@/types";
 import { Filters, ThemeKey, THEMES } from "@/app/page";
+import { useLang, TRANSLATIONS } from "@/lib/i18n";
 
 interface Props {
   persons: Person[];
@@ -14,6 +15,8 @@ interface Props {
 }
 
 export default function FilterBar({ persons, dates, events, filters, theme, onChange }: Props) {
+  const { lang } = useLang();
+  const tr = TRANSLATIONS[lang];
   const [query, setQuery] = useState(filters.person);
   const [showDrop, setShowDrop] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -31,7 +34,6 @@ export default function FilterBar({ persons, dates, events, filters, theme, onCh
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  // 필터 변경 시 모바일 패널 닫기
   useEffect(() => { setMobileOpen(false); }, [filters.year]);
 
   const matched = persons
@@ -65,7 +67,6 @@ export default function FilterBar({ persons, dates, events, filters, theme, onCh
   const clear = () => { onChange({ person: "", event: "", year: "" }); setQuery(""); };
   const hasFilter = filters.person || filters.event || filters.year;
 
-  // 테마 클래스
   const labelCls    = isDark ? "text-white/25"  : "text-black/35";
   const dividerCls  = isDark ? "text-white/10"  : "text-black/10";
   const inputActive = isDark ? "border-white text-white" : "border-black text-black";
@@ -82,16 +83,15 @@ export default function FilterBar({ persons, dates, events, filters, theme, onCh
     ? "text-white/40 hover:text-white/70 border-white/12 hover:border-white/30"
     : "text-black/40 hover:text-black/70 border-black/12 hover:border-black/30";
 
-  // 전체 필터 UI (공유)
   const filterBody = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
       {/* 인물 검색 */}
       <div className="relative" ref={dropRef}>
         <div className="flex items-center gap-1.5">
-          <span className={`text-[10px] uppercase tracking-widest shrink-0 ${labelCls}`}>인물</span>
+          <span className={`text-[10px] uppercase tracking-widest shrink-0 ${labelCls}`}>{tr.person}</span>
           <input
             type="text"
-            placeholder="검색..."
+            placeholder={tr.searchPlaceholder}
             value={query}
             onChange={(e) => { setQuery(e.target.value); setShowDrop(true); }}
             onFocus={() => setShowDrop(true)}
@@ -122,7 +122,7 @@ export default function FilterBar({ persons, dates, events, filters, theme, onCh
 
       {/* 연도 */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span className={`text-[10px] uppercase tracking-widest shrink-0 ${labelCls}`}>연도</span>
+        <span className={`text-[10px] uppercase tracking-widest shrink-0 ${labelCls}`}>{tr.year}</span>
         {years.map((y) => (
           <Chip key={y} label={String(y)} active={filters.year === String(y)} isDark={isDark}
             onClick={() => pickYear(String(y))} />
@@ -134,7 +134,7 @@ export default function FilterBar({ persons, dates, events, filters, theme, onCh
         <>
           <span className={`text-xs ${dividerCls}`}>│</span>
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={`text-[10px] uppercase tracking-widest shrink-0 ${labelCls}`}>행사</span>
+            <span className={`text-[10px] uppercase tracking-widest shrink-0 ${labelCls}`}>{tr.event}</span>
             {events.slice(0, 30).map((ev) => (
               <Chip key={ev.name} label={ev.name} count={ev.count}
                 active={filters.event === ev.name} isDark={isDark}
@@ -154,9 +154,7 @@ export default function FilterBar({ persons, dates, events, filters, theme, onCh
     <>
       {/* ── 모바일 (md 미만) ── */}
       <div className="md:hidden">
-        {/* 요약 바 */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* 필터 토글 버튼 */}
           <button
             onClick={() => setMobileOpen((o) => !o)}
             className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] border transition-all ${toggleCls} ${
@@ -168,7 +166,7 @@ export default function FilterBar({ persons, dates, events, filters, theme, onCh
               <rect x="3" y="5.4" width="6" height="1.2" rx="0.6"/>
               <rect x="5" y="8.8" width="2" height="1.2" rx="0.6"/>
             </svg>
-            필터
+            {tr.filter}
             {hasFilter && (
               <span className={`w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-medium ${
                 isDark ? "bg-white text-black" : "bg-black text-white"
@@ -178,7 +176,6 @@ export default function FilterBar({ persons, dates, events, filters, theme, onCh
             )}
           </button>
 
-          {/* 활성 필터 요약 칩 */}
           {filters.year && (
             <ActiveTag label={filters.year} isDark={isDark}
               onClear={() => pickYear(filters.year)} />
@@ -193,7 +190,6 @@ export default function FilterBar({ persons, dates, events, filters, theme, onCh
           )}
         </div>
 
-        {/* 펼쳐지는 필터 패널 */}
         {mobileOpen && (
           <div className={`mt-3 pt-3 border-t ${isDark ? "border-white/8" : "border-black/8"}`}>
             {filterBody}
@@ -209,7 +205,6 @@ export default function FilterBar({ persons, dates, events, filters, theme, onCh
   );
 }
 
-/* ── 활성 필터 태그 (모바일 요약 바용) ── */
 function ActiveTag({ label, isDark, onClear }: { label: string; isDark: boolean; onClear: () => void }) {
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
@@ -221,7 +216,6 @@ function ActiveTag({ label, isDark, onClear }: { label: string; isDark: boolean;
   );
 }
 
-/* ── 칩 ── */
 function Chip({
   label, active, onClick, count, isDark,
 }: {

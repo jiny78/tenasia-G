@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useState } from "react";
 import Image from "next/image";
 import { Photo } from "@/types";
+import { useLang, TRANSLATIONS } from "@/lib/i18n";
 
 const WM_SVG = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="150">` +
@@ -21,6 +22,8 @@ interface Props {
 }
 
 export default function Lightbox({ photos, index, onClose, onNav, onDownload }: Props) {
+  const { lang } = useLang();
+  const tr = TRANSLATIONS[lang];
   const photo = photos[index];
   const [imgLoaded, setImgLoaded] = useState(false);
 
@@ -76,17 +79,17 @@ export default function Lightbox({ photos, index, onClose, onNav, onDownload }: 
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20
                        border border-white/15 text-white/70 hover:text-white
                        transition-all duration-150 text-xs font-medium"
-            title="원본 고화질 다운로드"
+            title={tr.downloadTitle}
           >
             <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M6.5 1.5v7M4 6l2.5 2.5L9 6M1.5 10.5h9" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            Download
+            {tr.download}
           </button>
 
           <button onClick={onClose}
             className="text-white/40 hover:text-white transition-colors text-xl leading-none"
-            aria-label="닫기">✕</button>
+            aria-label={tr.closeLabel}>✕</button>
         </div>
       </div>
 

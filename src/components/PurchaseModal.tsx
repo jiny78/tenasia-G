@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLang, TRANSLATIONS } from "@/lib/i18n";
 
 const PACKS = [
   {
@@ -34,12 +35,14 @@ interface Props {
 }
 
 export default function PurchaseModal({ onClose }: Props) {
+  const { lang } = useLang();
+  const tr = TRANSLATIONS[lang];
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   async function handleBuy(pack: (typeof PACKS)[number]) {
     if (!pack.priceEnv) {
-      setError("결제 시스템 준비 중입니다. 잠시 후 다시 시도해주세요.");
+      setError(tr.paymentPending);
       return;
     }
     setLoading(pack.id);
@@ -54,10 +57,10 @@ export default function PurchaseModal({ onClose }: Props) {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError(data.error ?? "결제 페이지를 열 수 없습니다.");
+        setError(data.error ?? tr.paymentError);
       }
     } catch {
-      setError("네트워크 오류가 발생했습니다.");
+      setError(tr.networkError);
     } finally {
       setLoading(null);
     }
@@ -76,10 +79,10 @@ export default function PurchaseModal({ onClose }: Props) {
         <div className="flex items-start justify-between mb-6">
           <div>
             <h2 className="text-white text-lg font-semibold tracking-wide">
-              Download Pack
+              {tr.downloadPack}
             </h2>
             <p className="text-white/40 text-xs mt-1">
-              고화질 원본 이미지 · 워터마크 없음
+              {tr.downloadPackSub}
             </p>
           </div>
           <button
@@ -114,7 +117,7 @@ export default function PurchaseModal({ onClose }: Props) {
                   )}
                 </div>
                 <p className="text-white/40 text-xs mt-0.5">
-                  {pack.photos}장 다운로드
+                  {tr.photosPackCount(pack.photos)}
                 </p>
               </div>
               <div className="text-right">
@@ -132,7 +135,7 @@ export default function PurchaseModal({ onClose }: Props) {
         )}
 
         <p className="mt-5 text-white/20 text-[10px] text-center leading-relaxed">
-          Stripe 보안 결제 · 신용카드 / Apple Pay / Google Pay
+          {tr.stripeNote}
         </p>
       </div>
     </div>

@@ -5,29 +5,10 @@ import PhotoGrid from "@/components/PhotoGrid";
 import FilterBar from "@/components/FilterBar";
 import { Photo, Person, DateEntry, GalleryEvent } from "@/types";
 import { getCredits } from "@/lib/credits";
+import { useLang, TRANSLATIONS } from "@/lib/i18n";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
-
-const apiHeaders: HeadersInit = API_KEY ? { "X-API-Key": API_KEY } : {};
-
-// R2 URL을 서버 프록시 경로로 변환 — 원본 버킷 주소 클라이언트 미노출
-function resolveUrl(url: string): string {
-  if (!url) return "";
-  if (url.startsWith("/api/image")) return url;
-  if (url.startsWith("http")) {
-    try {
-      const u = new URL(url);
-      const path = u.pathname.slice(1); // 앞의 / 제거
-      return `/api/image?path=${encodeURIComponent(path)}`;
-    } catch {
-      return "";
-    }
-  }
-  // 상대 경로
-  const path = url.startsWith("/") ? url.slice(1) : url;
-  return `/api/image?path=${encodeURIComponent(path)}`;
-}
+// 모든 API 호출은 /api/gallery/* 서버 프록시를 통해 처리
+// → API 키, R2 URL이 클라이언트에 노출되지 않음
 
 export type Filters = {
   person: string;
@@ -41,7 +22,7 @@ const EMPTY: Filters = { person: "", event: "", year: "" };
 export type ThemeKey = "black" | "charcoal" | "cream" | "white";
 
 export const THEMES: Record<ThemeKey, {
-  label: string;
+  labelKey: "themeBlack" | "themeCharcoal" | "themeCream" | "themeWhite";
   swatch: string;
   bg: string;
   header: string;
@@ -49,13 +30,15 @@ export const THEMES: Record<ThemeKey, {
   text: string;
   sub: string;
 }> = {
-  black:    { label: "흑",  swatch: "#111111", bg: "bg-[#111]",    header: "bg-[#111]/95",   border: "border-white/8",  text: "text-white",      sub: "text-white/30" },
-  charcoal: { label: "회",  swatch: "#2a2a2a", bg: "bg-[#2a2a2a]", header: "bg-[#2a2a2a]/95",border: "border-white/10", text: "text-white",      sub: "text-white/30" },
-  cream:    { label: "크림", swatch: "#ede8df", bg: "bg-[#ede8df]", header: "bg-[#ede8df]/95",border: "border-black/8",  text: "text-[#1a1a1a]", sub: "text-[#1a1a1a]/40" },
-  white:    { label: "백",  swatch: "#f5f5f3", bg: "bg-[#f5f5f3]", header: "bg-[#f5f5f3]/95",border: "border-black/8",  text: "text-[#111]",    sub: "text-[#111]/35" },
+  black:    { labelKey: "themeBlack",    swatch: "#111111", bg: "bg-[#111]",    header: "bg-[#111]/95",   border: "border-white/8",  text: "text-white",      sub: "text-white/30" },
+  charcoal: { labelKey: "themeCharcoal", swatch: "#2a2a2a", bg: "bg-[#2a2a2a]", header: "bg-[#2a2a2a]/95",border: "border-white/10", text: "text-white",      sub: "text-white/30" },
+  cream:    { labelKey: "themeCream",    swatch: "#ede8df", bg: "bg-[#ede8df]", header: "bg-[#ede8df]/95",border: "border-black/8",  text: "text-[#1a1a1a]", sub: "text-[#1a1a1a]/40" },
+  white:    { labelKey: "themeWhite",    swatch: "#f5f5f3", bg: "bg-[#f5f5f3]", header: "bg-[#f5f5f3]/95",border: "border-black/8",  text: "text-[#111]",    sub: "text-[#111]/35" },
 };
 
 export default function Home() {
+  const { lang, setLang } = useLang();
+  const tr = TRANSLATIONS[lang];
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [persons, setPersons] = useState<Person[]>([]);
   const [dates, setDates] = useState<DateEntry[]>([]);
@@ -101,13 +84,10 @@ export default function Home() {
     params.set("page", String(p));
     params.set("limit", "60");
     try {
-      const res = await fetch(`${API}/public/gallery?${params}`, { headers: apiHeaders });
+      const res = await fetch(`/api/gallery?${params}`);
       const data = await res.json();
-      const resolved = (data.photos ?? []).map((ph: Photo) => ({
-        ...ph, url: resolveUrl(ph.url),
-      }));
-      if (p === 1) setPhotos(resolved);
-      else setPhotos((prev) => [...prev, ...resolved]);
+      if (p === 1) setPhotos(data.photos ?? []);
+      else setPhotos((prev) => [...prev, ...(data.photos ?? [])]);
       setTotal(data.total ?? 0);
       setPage(p);
     } catch (e) { console.error(e); }
@@ -117,16 +97,16 @@ export default function Home() {
   const fetchEvents = useCallback(async (year: string) => {
     const params = year ? `?year=${year}` : "";
     try {
-      const res = await fetch(`${API}/public/gallery/events${params}`, { headers: apiHeaders });
+      const res = await fetch(`/api/gallery/events${params}`);
       const data = await res.json();
       setEvents(data.events ?? []);
     } catch (e) { console.error(e); }
   }, []);
 
   useEffect(() => {
-    fetch(`${API}/public/gallery/persons`, { headers: apiHeaders })
+    fetch("/api/gallery/persons")
       .then((r) => r.json()).then((d) => setPersons(d.persons ?? [])).catch(console.error);
-    fetch(`${API}/public/gallery/dates`, { headers: apiHeaders })
+    fetch("/api/gallery/dates")
       .then((r) => r.json()).then((d) => setDates(d.dates ?? [])).catch(console.error);
     fetchEvents("");
     fetchPhotos(EMPTY, 1);
@@ -146,7 +126,7 @@ export default function Home() {
           {/* 로고 */}
           <div className="flex items-baseline gap-2 shrink-0">
             <span className="text-base font-bold tracking-[0.15em] uppercase">Tenasia</span>
-            <span className={`text-[10px] tracking-[0.4em] uppercase ${t.sub}`}>Gallery</span>
+            <span className={`text-[10px] tracking-[0.4em] uppercase ${t.sub}`}>{tr.gallery}</span>
           </div>
 
           {/* 필터 */}
@@ -161,7 +141,7 @@ export default function Home() {
             />
           </div>
 
-          {/* 우측: 다운로드 크레딧 + 카운트 + 테마 */}
+          {/* 우측: 다운로드 크레딧 + 카운트 + 테마 + 언어 */}
           <div className="flex items-center gap-3 shrink-0">
             {credits > 0 ? (
               <span className="text-xs tabular-nums text-white bg-white/15 px-2 py-0.5 rounded-full">
@@ -171,13 +151,33 @@ export default function Home() {
               <span className={`text-xs tabular-nums ${t.sub}`}>{total.toLocaleString()}</span>
             )}
 
+            {/* 언어 토글 */}
+            <div className={`flex items-center text-[11px] font-medium border rounded-full overflow-hidden ${t.border}`}>
+              <button
+                onClick={() => setLang("en")}
+                className={`px-2 py-0.5 transition-colors ${
+                  lang === "en"
+                    ? (theme === "black" || theme === "charcoal" ? "bg-white text-black" : "bg-black text-white")
+                    : `${t.sub} hover:opacity-80`
+                }`}
+              >EN</button>
+              <button
+                onClick={() => setLang("ko")}
+                className={`px-2 py-0.5 transition-colors ${
+                  lang === "ko"
+                    ? (theme === "black" || theme === "charcoal" ? "bg-white text-black" : "bg-black text-white")
+                    : `${t.sub} hover:opacity-80`
+                }`}
+              >한</button>
+            </div>
+
             {/* 테마 선택 */}
             <div className="flex gap-1.5">
               {(Object.keys(THEMES) as ThemeKey[]).map((k) => (
                 <button
                   key={k}
                   onClick={() => changeTheme(k)}
-                  title={THEMES[k].label}
+                  title={tr[THEMES[k].labelKey]}
                   className={`w-4 h-4 rounded-full border transition-all ${
                     theme === k ? "ring-2 ring-offset-1 ring-current scale-110" : "opacity-50 hover:opacity-80"
                   }`}

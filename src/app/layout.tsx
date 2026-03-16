@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import LangProvider from "@/components/LangProvider";
 
 export const metadata: Metadata = {
-  title: "텐아시아 갤러리",
-  description: "K-아티스트 포토 갤러리 — 배우, 감독, 가수",
+  title: "Tenasia Gallery",
+  description: "K-Artist Photo Gallery — Actors, Directors, Musicians",
 };
 
 export default function RootLayout({
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <LangProvider>{children}</LangProvider>
+      </body>
     </html>
   );
 }
