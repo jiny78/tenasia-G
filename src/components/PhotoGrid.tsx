@@ -68,7 +68,7 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
     if (!el) return;
     const io = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting && hasMore && !loading) onLoadMore(); },
-      { rootMargin: "800px" }
+      { rootMargin: "300px" }
     );
     io.observe(el);
     return () => io.disconnect();
@@ -251,9 +251,12 @@ function PhotoCard({
         fill={!!aspect}
         width={aspect ? undefined : 480}
         height={aspect ? undefined : 640}
+        sizes={aspect
+          ? "(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+          : "(max-width: 640px) 50vw, 25vw"
+        }
         className={`object-cover transition-transform duration-500 group-hover:scale-[1.04]
                     select-none pointer-events-none ${aspect ? "" : "w-full"}`}
-        unoptimized
         draggable={false}
         priority={priority}
         loading={priority ? undefined : "lazy"}

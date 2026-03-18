@@ -82,7 +82,7 @@ export default function Home() {
     if (f.event) params.set("role", f.event);
     if (f.year) params.set("year", f.year);
     params.set("page", String(p));
-    params.set("limit", "60");
+    params.set("limit", "24");
     try {
       const res = await fetch(`/api/gallery?${params}`);
       const data = await res.json();
