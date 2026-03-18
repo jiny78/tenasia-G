@@ -41,6 +41,13 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
+    async signIn({ user }) {
+      try {
+        const { logActivity } = await import("@/lib/activity-log");
+        await logActivity({ userId: user.id, action: "login", detail: user.email ?? undefined });
+      } catch {}
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id            = user.id;

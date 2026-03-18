@@ -121,3 +121,33 @@ model MediaCredential {
   createdAt  DateTime  @default(now())
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  ip        String?
+  country   String?
+  city      String?
+  userAgent String?
+  referrer  String?
+  userId    String?
+  sessionId String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([country])
+  @@index([path])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  detail    String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
