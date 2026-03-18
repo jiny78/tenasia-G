@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSession, signOut } from "next-auth/react";
 import PhotoGrid from "@/components/PhotoGrid";
 import FilterBar from "@/components/FilterBar";
 import { Photo, Person, DateEntry, GalleryEvent } from "@/types";
-import { getCredits } from "@/lib/credits";
+import { useCredits } from "@/lib/credits";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
 
 // 모든 API 호출은 /api/gallery/* 서버 프록시를 통해 처리
@@ -36,6 +37,82 @@ export const THEMES: Record<ThemeKey, {
   white:    { labelKey: "themeWhite",    swatch: "#f5f5f3", bg: "bg-[#f5f5f3]", header: "bg-[#f5f5f3]/95",border: "border-black/8",  text: "text-[#111]",    sub: "text-[#111]/35" },
 };
 
+// ── 사용자 아바타 드롭다운 ────────────────────────────────────
+function UserMenu({ theme }: { theme: ThemeKey }) {
+  const { data: session } = useSession();
+  const { lang }          = useLang();
+  const tr                = TRANSLATIONS[lang];
+  const [open, setOpen]   = useState(false);
+  const ref               = useRef<HTMLDivElement>(null);
+  const isDark            = theme === "black" || theme === "charcoal";
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  if (!session) {
+    return (
+      <a href="/auth/signin"
+        className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+          isDark
+            ? "border-white/15 text-white/60 hover:text-white hover:border-white/30"
+            : "border-black/15 text-black/60 hover:text-black hover:border-black/30"
+        }`}>
+        {tr.signIn}
+      </a>
+    );
+  }
+
+  const name    = session.user?.name ?? session.user?.email ?? "User";
+  const initial = name.charAt(0).toUpperCase();
+  const image   = session.user?.image;
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen((o) => !o)}
+        className="w-7 h-7 rounded-full overflow-hidden border border-white/20 hover:border-white/50
+                   transition-colors focus:outline-none">
+        {image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={image} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          <div className={`w-full h-full flex items-center justify-center text-xs font-bold
+                           ${isDark ? "bg-white/15 text-white" : "bg-black/10 text-black"}`}>
+            {initial}
+          </div>
+        )}
+      </button>
+
+      {open && (
+        <div className={`absolute right-0 top-9 w-48 rounded-xl border shadow-2xl z-50 overflow-hidden
+                         ${isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-black/8"}`}>
+          <div className={`px-3 py-2.5 border-b ${isDark ? "border-white/8" : "border-black/8"}`}>
+            <p className={`text-xs font-medium truncate ${isDark ? "text-white" : "text-black"}`}>{name}</p>
+            <p className={`text-[11px] truncate ${isDark ? "text-white/40" : "text-black/40"}`}>
+              {session.user?.email}
+            </p>
+          </div>
+          <a href="/account"
+            className={`flex items-center px-3 py-2 text-sm transition-colors
+                        ${isDark ? "text-white/70 hover:bg-white/8 hover:text-white" : "text-black/70 hover:bg-black/5 hover:text-black"}`}>
+            Dashboard
+          </a>
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className={`w-full text-left flex items-center px-3 py-2 text-sm transition-colors
+                        ${isDark ? "text-white/40 hover:bg-white/8 hover:text-white" : "text-black/40 hover:bg-black/5 hover:text-black"}`}>
+            {tr.signOut}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const { lang, setLang } = useLang();
   const tr = TRANSLATIONS[lang];
@@ -48,13 +125,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [theme, setTheme] = useState<ThemeKey>("black");
-  const [credits, setCredits] = useState(0);
 
-  // localStorage에서 테마 + 크레딧 복원
+  // useCredits hook (로그인→DB, 비로그인→localStorage)
+  const { balance: credits, refresh: refreshCredits } = useCredits();
+
+  // localStorage에서 테마 복원
   useEffect(() => {
     const saved = localStorage.getItem("tg-theme") as ThemeKey | null;
     if (saved && THEMES[saved]) setTheme(saved);
-    setCredits(getCredits());
   }, []);
 
   // 전역 저장 단축키 차단 (Ctrl+S, Ctrl+U)
@@ -141,7 +219,7 @@ export default function Home() {
             />
           </div>
 
-          {/* 우측: 다운로드 크레딧 + 카운트 + 테마 + 언어 */}
+          {/* 우측: 크레딧 + 테마 + 언어 + 유저 */}
           <div className="flex items-center gap-3 shrink-0">
             {credits > 0 ? (
               <span className="text-xs tabular-nums text-white bg-white/15 px-2 py-0.5 rounded-full">
@@ -188,6 +266,9 @@ export default function Home() {
                 />
               ))}
             </div>
+
+            {/* 유저 메뉴 */}
+            <UserMenu theme={theme} />
           </div>
         </div>
       </header>
@@ -199,7 +280,7 @@ export default function Home() {
           hasMore={photos.length < total}
           onLoadMore={() => fetchPhotos(filters, page + 1)}
           theme={theme}
-          onCreditsChange={setCredits}
+          onCreditsChange={refreshCredits}
         />
       </main>
     </div>

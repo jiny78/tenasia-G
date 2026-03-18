@@ -8,6 +8,8 @@ export const LANG_KEY = "tg-lang";
 type TranslationSet = {
   // header
   gallery: string;
+  signIn: string;
+  signOut: string;
   // FilterBar
   person: string;
   searchPlaceholder: string;
@@ -60,11 +62,74 @@ type TranslationSet = {
   policiesTableOfContents: string;
   policiesBackToAll: string;
   footerLegal: string;
+  // Auth
+  authEmail: string;
+  authPassword: string;
+  authName: string;
+  authCompany: string;
+  authJobTitle: string;
+  authCountry: string;
+  authSignIn: string;
+  authSignUp: string;
+  authSignOut: string;
+  authContinueWithGoogle: string;
+  authNoAccount: string;
+  authHasAccount: string;
+  authForgotPassword: string;
+  authEmailPlaceholder: string;
+  authPasswordPlaceholder: string;
+  authNamePlaceholder: string;
+  authCompanyPlaceholder: string;
+  authJobTitlePlaceholder: string;
+  authCountryPlaceholder: string;
+  authOptional: string;
+  authSigningIn: string;
+  authCreatingAccount: string;
+  // Account dashboard
+  accountDashboard: string;
+  accountPurchases: string;
+  accountDownloads: string;
+  accountSettings: string;
+  accountCreditBalance: string;
+  accountBuyCredits: string;
+  accountRecentPurchases: string;
+  accountRecentDownloads: string;
+  accountRedownload: string;
+  accountExpired: string;
+  accountNoDownloads: string;
+  accountNoPurchases: string;
+  accountLicenseFilter: string;
+  accountAllLicenses: string;
+  accountEditorial: string;
+  accountCreditsEach: string;
+  // Settings
+  accountProfile: string;
+  accountSaveChanges: string;
+  accountCurrentPassword: string;
+  accountNewPassword: string;
+  accountChangePassword: string;
+  accountPasswordChanged: string;
+  accountProfileSaved: string;
+  // Media credentials
+  accountPressCredentials: string;
+  accountPressCredentialsSub: string;
+  accountCredentialType: string;
+  accountCredentialFile: string;
+  accountSubmitCredentials: string;
+  accountCredentialStatus: string;
+  accountCredentialPending: string;
+  accountCredentialApproved: string;
+  accountCredentialRejected: string;
+  accountCredentialSubmitted: string;
+  // Date labels
+  accountViewAll: string;
 };
 
 export const TRANSLATIONS: Record<Lang, TranslationSet> = {
   en: {
     gallery: "Gallery",
+    signIn: "Sign In",
+    signOut: "Sign Out",
     person: "Person",
     searchPlaceholder: "Search...",
     year: "Year",
@@ -109,9 +174,69 @@ export const TRANSLATIONS: Record<Lang, TranslationSet> = {
     policiesTableOfContents: "Table of Contents",
     policiesBackToAll: "View All Policies",
     footerLegal: "Legal",
+    // Auth
+    authEmail: "Email",
+    authPassword: "Password",
+    authName: "Full Name",
+    authCompany: "Company / Media",
+    authJobTitle: "Job Title",
+    authCountry: "Country",
+    authSignIn: "Sign In",
+    authSignUp: "Create Account",
+    authSignOut: "Sign Out",
+    authContinueWithGoogle: "Continue with Google",
+    authNoAccount: "Don't have an account?",
+    authHasAccount: "Already have an account?",
+    authForgotPassword: "Forgot password?",
+    authEmailPlaceholder: "you@example.com",
+    authPasswordPlaceholder: "Min. 8 characters",
+    authNamePlaceholder: "Your full name",
+    authCompanyPlaceholder: "Reuters, AP, Freelance...",
+    authJobTitlePlaceholder: "Photographer, Editor...",
+    authCountryPlaceholder: "United States",
+    authOptional: "Optional",
+    authSigningIn: "Signing in...",
+    authCreatingAccount: "Creating account...",
+    // Account
+    accountDashboard: "Dashboard",
+    accountPurchases: "Purchases",
+    accountDownloads: "Downloads",
+    accountSettings: "Settings",
+    accountCreditBalance: "Credit Balance",
+    accountBuyCredits: "Buy Credits",
+    accountRecentPurchases: "Recent Purchases",
+    accountRecentDownloads: "Recent Downloads",
+    accountRedownload: "Re-download",
+    accountExpired: "Expired",
+    accountNoDownloads: "No downloads yet",
+    accountNoPurchases: "No purchases yet",
+    accountLicenseFilter: "License",
+    accountAllLicenses: "All",
+    accountEditorial: "Editorial",
+    accountCreditsEach: "credit each",
+    accountProfile: "Profile",
+    accountSaveChanges: "Save Changes",
+    accountCurrentPassword: "Current Password",
+    accountNewPassword: "New Password",
+    accountChangePassword: "Change Password",
+    accountPasswordChanged: "Password changed successfully",
+    accountProfileSaved: "Profile saved",
+    accountPressCredentials: "Press Credentials",
+    accountPressCredentialsSub: "Submit your press ID or media credential for verified status and discounts.",
+    accountCredentialType: "Credential Type",
+    accountCredentialFile: "Upload File",
+    accountSubmitCredentials: "Submit for Review",
+    accountCredentialStatus: "Status",
+    accountCredentialPending: "Under Review",
+    accountCredentialApproved: "Approved",
+    accountCredentialRejected: "Rejected",
+    accountCredentialSubmitted: "Submitted successfully",
+    accountViewAll: "View All",
   },
   ko: {
     gallery: "갤러리",
+    signIn: "로그인",
+    signOut: "로그아웃",
     person: "인물",
     searchPlaceholder: "검색...",
     year: "연도",
@@ -156,13 +281,71 @@ export const TRANSLATIONS: Record<Lang, TranslationSet> = {
     policiesTableOfContents: "목차",
     policiesBackToAll: "전체 정책 보기",
     footerLegal: "법적 고지",
+    // Auth
+    authEmail: "이메일",
+    authPassword: "비밀번호",
+    authName: "이름",
+    authCompany: "소속 / 언론사",
+    authJobTitle: "직함",
+    authCountry: "국가",
+    authSignIn: "로그인",
+    authSignUp: "계정 만들기",
+    authSignOut: "로그아웃",
+    authContinueWithGoogle: "Google로 계속하기",
+    authNoAccount: "계정이 없으신가요?",
+    authHasAccount: "이미 계정이 있으신가요?",
+    authForgotPassword: "비밀번호 찾기",
+    authEmailPlaceholder: "you@example.com",
+    authPasswordPlaceholder: "최소 8자 이상",
+    authNamePlaceholder: "이름을 입력하세요",
+    authCompanyPlaceholder: "연합뉴스, AP, 프리랜서...",
+    authJobTitlePlaceholder: "사진기자, 에디터...",
+    authCountryPlaceholder: "대한민국",
+    authOptional: "선택",
+    authSigningIn: "로그인 중...",
+    authCreatingAccount: "계정 생성 중...",
+    // Account
+    accountDashboard: "대시보드",
+    accountPurchases: "구매 이력",
+    accountDownloads: "다운로드 이력",
+    accountSettings: "설정",
+    accountCreditBalance: "크레딧 잔액",
+    accountBuyCredits: "크레딧 구매",
+    accountRecentPurchases: "최근 구매",
+    accountRecentDownloads: "최근 다운로드",
+    accountRedownload: "재다운로드",
+    accountExpired: "만료됨",
+    accountNoDownloads: "다운로드 이력이 없습니다",
+    accountNoPurchases: "구매 이력이 없습니다",
+    accountLicenseFilter: "라이선스",
+    accountAllLicenses: "전체",
+    accountEditorial: "편집용",
+    accountCreditsEach: "크레딧/장",
+    accountProfile: "프로필",
+    accountSaveChanges: "저장",
+    accountCurrentPassword: "현재 비밀번호",
+    accountNewPassword: "새 비밀번호",
+    accountChangePassword: "비밀번호 변경",
+    accountPasswordChanged: "비밀번호가 변경되었습니다",
+    accountProfileSaved: "프로필이 저장되었습니다",
+    accountPressCredentials: "언론 크리덴셜",
+    accountPressCredentialsSub: "보도증 또는 언론사 크리덴셜을 제출하면 인증 후 할인 혜택이 적용됩니다.",
+    accountCredentialType: "크리덴셜 유형",
+    accountCredentialFile: "파일 업로드",
+    accountSubmitCredentials: "검토 요청",
+    accountCredentialStatus: "상태",
+    accountCredentialPending: "검토 중",
+    accountCredentialApproved: "승인됨",
+    accountCredentialRejected: "거절됨",
+    accountCredentialSubmitted: "제출되었습니다",
+    accountViewAll: "전체 보기",
   },
 };
 
 export const LangContext = createContext<{
   lang: Lang;
   setLang: (l: Lang) => void;
-}>({ lang: "ko", setLang: () => {} });
+}>({ lang: "en", setLang: () => {} });
 
 export function useLang() {
   return useContext(LangContext);

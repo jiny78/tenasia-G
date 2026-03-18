@@ -1,0 +1,123 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ── NextAuth 기본 모델 ──────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ── 사용자 ──────────────────────────────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  name            String?
+  email           String?   @unique
+  emailVerified   DateTime?
+  image           String?
+  password        String?
+  company         String?
+  jobTitle        String?
+  country         String?
+  pressVerified   Boolean   @default(false)
+  pressDiscount   Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  accounts        Account[]
+  sessions        Session[]
+  credits         Credit?
+  purchases       Purchase[]
+  downloads       Download[]
+  mediaCredential MediaCredential?
+}
+
+// ── 크레딧 ──────────────────────────────────────────────────────
+
+model Credit {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ── 구매 이력 ──────────────────────────────────────────────────
+
+model Purchase {
+  id              String   @id @default(cuid())
+  userId          String
+  stripeSessionId String   @unique
+  amount          Int
+  currency        String   @default("usd")
+  creditsAdded    Int
+  status          String   @default("completed")
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ── 다운로드 이력 ──────────────────────────────────────────────
+
+model Download {
+  id          String   @id @default(cuid())
+  userId      String
+  photoId     String
+  photoName   String?
+  licenseType String   @default("editorial")
+  creditsUsed Int      @default(1)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([photoId])
+}
+
+// ── 미디어 크리덴셜 ────────────────────────────────────────────
+
+model MediaCredential {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  type       String
+  fileUrl    String
+  status     String    @default("pending")
+  reviewNote String?
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

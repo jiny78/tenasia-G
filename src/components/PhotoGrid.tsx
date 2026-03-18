@@ -7,6 +7,7 @@ import Lightbox from "@/components/Lightbox";
 import PurchaseModal from "@/components/PurchaseModal";
 import { ThemeKey } from "@/app/page";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
+import { useCredits } from "@/lib/credits";
 
 interface Props {
   photos: Photo[];
@@ -14,7 +15,7 @@ interface Props {
   hasMore: boolean;
   onLoadMore: () => void;
   theme: ThemeKey;
-  onCreditsChange?: (n: number) => void;
+  onCreditsChange?: () => void;
 }
 
 interface Section {
@@ -62,6 +63,7 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
   const [lbIndex, setLbIndex] = useState<number | null>(null);
   const [showPurchase, setShowPurchase] = useState(false);
   const isDark = theme === "black" || theme === "charcoal";
+  const { balance, spendAndGetToken } = useCredits();
 
   useEffect(() => {
     const el = sentinel.current;
@@ -82,10 +84,24 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
     return offsets;
   }, [sections]);
 
-  // 결제 시스템 준비 중 — 다운로드 클릭 시 구매 모달 표시
-  const handleDownload = useCallback((_photo: Photo) => {
-    setShowPurchase(true);
-  }, []);
+  const handleDownload = useCallback(async (photo: Photo) => {
+    if (balance <= 0) {
+      setShowPurchase(true);
+      return;
+    }
+    const photoName = photo.id.split("/").pop() ?? undefined;
+    const token = await spendAndGetToken(photo.id, photo.url, photoName);
+    if (!token) {
+      setShowPurchase(true);
+      return;
+    }
+    // 서명된 URL로 다운로드 트리거
+    const a = document.createElement("a");
+    a.href     = `/api/download?url=${encodeURIComponent(photo.url)}&token=${token}`;
+    a.download = photoName ?? "tenasia-photo.jpg";
+    a.click();
+    onCreditsChange?.();
+  }, [balance, spendAndGetToken, onCreditsChange]);
 
   if (!loading && photos.length === 0) {
     return (
