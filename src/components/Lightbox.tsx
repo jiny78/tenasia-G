@@ -2,8 +2,10 @@
 
 import { useEffect, useCallback, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Photo } from "@/types";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
+import { encodePhotoKey } from "@/lib/photoKey";
 
 const WM_SVG = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="150">` +
@@ -71,6 +73,20 @@ export default function Lightbox({ photos, index, onClose, onNav, onDownload }: 
         </div>
         <div className="flex items-center gap-3">
           <span className="text-white/25 text-xs tabular-nums">{index + 1} / {photos.length}</span>
+
+          {/* 상세 보기 링크 */}
+          <Link
+            href={`/photo/${encodePhotoKey(photo.id)}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20
+                       border border-white/15 text-white/70 hover:text-white
+                       transition-all duration-150 text-xs font-medium"
+          >
+            {tr.photoViewDetails}
+            <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M2 9L9 2M4 2h5v5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </Link>
 
           {/* 다운로드 버튼 */}
           <button
