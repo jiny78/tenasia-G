@@ -64,14 +64,20 @@ export function useCredits() {
     refresh();
   }, [status, refresh]);
 
-  /** 크레딧 1장 차감 + (로그인) 다운로드 기록. 성공 시 signed token 반환 */
+  /** 크레딧 차감 + (로그인) 다운로드 기록. 성공 시 signed token 반환 */
   const spendAndGetToken = useCallback(
-    async (photoId: string, photoUrl: string, photoName?: string): Promise<string | null> => {
+    async (
+      photoId: string,
+      photoUrl: string,
+      photoName?: string,
+      licenseType: string = "editorial",
+      creditsUsed: number = 1,
+    ): Promise<string | null> => {
       if (session?.user?.id) {
         const res  = await fetch("/api/account/downloads", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ photoId, photoUrl, photoName }),
+          body:    JSON.stringify({ photoId, photoUrl, photoName, licenseType, creditsUsed }),
         });
         const data = await res.json();
         if (!res.ok) return null;
@@ -82,9 +88,17 @@ export function useCredits() {
         return data.token as string;
       } else {
         // 비로그인: localStorage 크레딧 차감 + /api/request-download 토큰 획득
-        const ok = useCredit();
-        if (!ok) return null;
-        setBalance((prev) => Math.max(0, prev - 1));
+        if (creditsUsed > 1) {
+          // 비로그인은 editorial(1크레딧)만 지원
+          const c = getCredits();
+          if (c < creditsUsed) return null;
+          localStorage.setItem("tg-credits", String(c - creditsUsed));
+          setBalance((prev) => Math.max(0, prev - creditsUsed));
+        } else {
+          const ok = useCredit();
+          if (!ok) return null;
+          setBalance((prev) => Math.max(0, prev - 1));
+        }
         const res  = await fetch(`/api/request-download?url=${encodeURIComponent(photoUrl)}`);
         const data = await res.json();
         return data.token ?? null;

@@ -57,34 +57,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { photoId, photoUrl, photoName } = await req.json();
+  const { photoId, photoUrl, photoName, licenseType = "editorial", creditsUsed = 1 } = await req.json();
   if (!photoId || !photoUrl) {
     return NextResponse.json({ error: "Missing photoId or photoUrl" }, { status: 400 });
   }
 
-  const userId = session.user.id;
-  const now    = new Date();
-  const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  const userId     = session.user.id;
+  const now        = new Date();
+  const cutoff     = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  const costAmount = Math.max(1, parseInt(String(creditsUsed), 10));
 
-  // 90일 내 동일 사진 재다운로드 확인
+  // 90일 내 동일 사진 + 동일 라이선스 재다운로드 확인
   const existing = await prisma.download.findFirst({
     where: {
       userId,
       photoId,
+      licenseType,
       createdAt: { gte: cutoff },
     },
   });
 
   if (!existing) {
     // 크레딧 차감
-    const credit = await prisma.credit.findUnique({ where: { userId } });
+    const credit  = await prisma.credit.findUnique({ where: { userId } });
     const balance = credit?.balance ?? 0;
-    if (balance < 1) {
+    if (balance < costAmount) {
       return NextResponse.json({ error: "Insufficient credits", balance }, { status: 402 });
     }
     await prisma.credit.update({
-      where:  { userId },
-      data:   { balance: { decrement: 1 } },
+      where: { userId },
+      data:  { balance: { decrement: costAmount } },
     });
 
     // 다운로드 기록 생성 (90일 만료)
@@ -93,7 +95,9 @@ export async function POST(req: NextRequest) {
       data: {
         userId,
         photoId,
-        photoName: photoName || null,
+        photoName:   photoName   || null,
+        licenseType: licenseType || "editorial",
+        creditsUsed: costAmount,
         expiresAt,
       },
     });

@@ -123,6 +123,32 @@ type TranslationSet = {
   accountCredentialSubmitted: string;
   // Date labels
   accountViewAll: string;
+  // Photo detail
+  photoArtist: string;
+  photoEvent: string;
+  photoDate: string;
+  photoResolution: string;
+  photoFileSize: string;
+  photoOrientation: string;
+  photoPhotoId: string;
+  photoSelectLicense: string;
+  photoEditorial: string;
+  photoEditorialDesc: string;
+  photoCommercial: string;
+  photoCommercialDesc: string;
+  photoExtended: string;
+  photoExtendedDesc: string;
+  photoDownload: string;
+  photoContactSales: string;
+  photoSignInToDownload: string;
+  photoBuyCredits: string;
+  photoCreditRequired: string;
+  photoViewDetails: string;
+  photoMoreFromEvent: string;
+  photoMoreOf: string;
+  photoLandscape: string;
+  photoPortrait: string;
+  photoSquare: string;
 };
 
 export const TRANSLATIONS: Record<Lang, TranslationSet> = {
@@ -232,6 +258,32 @@ export const TRANSLATIONS: Record<Lang, TranslationSet> = {
     accountCredentialRejected: "Rejected",
     accountCredentialSubmitted: "Submitted successfully",
     accountViewAll: "View All",
+    // Photo detail
+    photoArtist:          "Artist",
+    photoEvent:           "Event",
+    photoDate:            "Date",
+    photoResolution:      "Resolution",
+    photoFileSize:        "File Size",
+    photoOrientation:     "Orientation",
+    photoPhotoId:         "Photo ID",
+    photoSelectLicense:   "Select License",
+    photoEditorial:       "Editorial",
+    photoEditorialDesc:   "News, commentary, education",
+    photoCommercial:      "Commercial",
+    photoCommercialDesc:  "Ads, marketing, merchandise",
+    photoExtended:        "Extended",
+    photoExtendedDesc:    "Resale products, custom terms",
+    photoDownload:        "Download",
+    photoContactSales:    "Contact Sales",
+    photoSignInToDownload:"Sign in to Download",
+    photoBuyCredits:      "Buy Credits",
+    photoCreditRequired:  'Credit: "Photo: TenAsia" required for editorial use',
+    photoViewDetails:     "View Details",
+    photoMoreFromEvent:   "More from this event",
+    photoMoreOf:          "More of",
+    photoLandscape:       "Landscape",
+    photoPortrait:        "Portrait",
+    photoSquare:          "Square",
   },
   ko: {
     gallery: "갤러리",
@@ -339,6 +391,32 @@ export const TRANSLATIONS: Record<Lang, TranslationSet> = {
     accountCredentialRejected: "거절됨",
     accountCredentialSubmitted: "제출되었습니다",
     accountViewAll: "전체 보기",
+    // Photo detail
+    photoArtist:          "아티스트",
+    photoEvent:           "행사",
+    photoDate:            "날짜",
+    photoResolution:      "해상도",
+    photoFileSize:        "파일 크기",
+    photoOrientation:     "방향",
+    photoPhotoId:         "사진 ID",
+    photoSelectLicense:   "라이선스 선택",
+    photoEditorial:       "편집용",
+    photoEditorialDesc:   "뉴스, 논평, 교육 목적",
+    photoCommercial:      "상업용",
+    photoCommercialDesc:  "광고, 마케팅, 상품",
+    photoExtended:        "확장",
+    photoExtendedDesc:    "재판매 제품, 맞춤 조건",
+    photoDownload:        "다운로드",
+    photoContactSales:    "문의하기",
+    photoSignInToDownload:"로그인 후 다운로드",
+    photoBuyCredits:      "크레딧 구매",
+    photoCreditRequired:  '편집 사용 시 "Photo: TenAsia" 크레딧 표기 필수',
+    photoViewDetails:     "상세 보기",
+    photoMoreFromEvent:   "같은 행사 사진",
+    photoMoreOf:          "더보기",
+    photoLandscape:       "가로",
+    photoPortrait:        "세로",
+    photoSquare:          "정방형",
   },
 };
 

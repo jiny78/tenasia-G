@@ -7,6 +7,7 @@ import FilterBar from "@/components/FilterBar";
 import { Photo, Person, DateEntry, GalleryEvent } from "@/types";
 import { useCredits } from "@/lib/credits";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
+import { THEMES, ThemeKey } from "@/lib/themes";
 
 // 모든 API 호출은 /api/gallery/* 서버 프록시를 통해 처리
 // → API 키, R2 URL이 클라이언트에 노출되지 않음
@@ -19,23 +20,8 @@ export type Filters = {
 
 const EMPTY: Filters = { person: "", event: "", year: "" };
 
-// ── 테마 정의 ────────────────────────────────────────────────
-export type ThemeKey = "black" | "charcoal" | "cream" | "white";
-
-export const THEMES: Record<ThemeKey, {
-  labelKey: "themeBlack" | "themeCharcoal" | "themeCream" | "themeWhite";
-  swatch: string;
-  bg: string;
-  header: string;
-  border: string;
-  text: string;
-  sub: string;
-}> = {
-  black:    { labelKey: "themeBlack",    swatch: "#111111", bg: "bg-[#111]",    header: "bg-[#111]/95",   border: "border-white/8",  text: "text-white",      sub: "text-white/30" },
-  charcoal: { labelKey: "themeCharcoal", swatch: "#2a2a2a", bg: "bg-[#2a2a2a]", header: "bg-[#2a2a2a]/95",border: "border-white/10", text: "text-white",      sub: "text-white/30" },
-  cream:    { labelKey: "themeCream",    swatch: "#ede8df", bg: "bg-[#ede8df]", header: "bg-[#ede8df]/95",border: "border-black/8",  text: "text-[#1a1a1a]", sub: "text-[#1a1a1a]/40" },
-  white:    { labelKey: "themeWhite",    swatch: "#f5f5f3", bg: "bg-[#f5f5f3]", header: "bg-[#f5f5f3]/95",border: "border-black/8",  text: "text-[#111]",    sub: "text-[#111]/35" },
-};
+export type { ThemeKey };
+export { THEMES };
 
 // ── 사용자 아바타 드롭다운 ────────────────────────────────────
 function UserMenu({ theme }: { theme: ThemeKey }) {
