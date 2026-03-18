@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 const NAV = [
   { href: "/admin",           label: "개요",      icon: "⊞" },
@@ -42,6 +43,15 @@ export default function AdminSidebar() {
             );
           })}
         </nav>
+        <div className="px-4 py-4 border-t border-zinc-800">
+          <button
+            onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+            className="w-full flex items-center gap-2.5 px-2 py-2 text-sm text-zinc-500 hover:text-red-400 transition-colors rounded-md hover:bg-zinc-800/50"
+          >
+            <span className="text-base leading-none">⏻</span>
+            로그아웃
+          </button>
+        </div>
       </aside>
 
       {/* Mobile top nav */}
@@ -61,6 +71,13 @@ export default function AdminSidebar() {
               </Link>
             );
           })}
+          <button
+            onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+            className="flex flex-col items-center gap-0.5 px-3 py-2 text-[10px] whitespace-nowrap text-zinc-500 hover:text-red-400 transition-colors"
+          >
+            <span>⏻</span>
+            로그아웃
+          </button>
         </div>
       </div>
     </>
