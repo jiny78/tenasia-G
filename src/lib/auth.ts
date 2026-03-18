@@ -55,6 +55,8 @@ export const authOptions: NextAuthOptions = {
         token.company       = (user as { company?: string | null }).company ?? null;
         token.pressVerified = (user as { pressVerified?: boolean }).pressVerified ?? false;
         token.pressDiscount = (user as { pressDiscount?: number }).pressDiscount ?? 0;
+        const { isAdmin }   = await import("@/lib/admin");
+        token.isAdmin       = isAdmin(user.email);
       }
       return token;
     },
@@ -64,6 +66,7 @@ export const authOptions: NextAuthOptions = {
         session.user.company       = token.company as string | null | undefined;
         session.user.pressVerified = token.pressVerified as boolean;
         session.user.pressDiscount = token.pressDiscount as number;
+        session.user.isAdmin       = token.isAdmin as boolean;
       }
       return session;
     },

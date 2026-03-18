@@ -7,6 +7,7 @@ declare module "next-auth" {
       company?: string | null;
       pressVerified: boolean;
       pressDiscount: number;
+      isAdmin: boolean;
     } & DefaultSession["user"];
   }
 
@@ -24,5 +25,6 @@ declare module "next-auth/jwt" {
     company?: string | null;
     pressVerified: boolean;
     pressDiscount: number;
+    isAdmin: boolean;
   }
 }

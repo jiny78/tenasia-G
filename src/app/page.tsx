@@ -94,6 +94,13 @@ function UserMenu({ theme }: { theme: ThemeKey }) {
                         ${isDark ? "text-white/70 hover:bg-white/8 hover:text-white" : "text-black/70 hover:bg-black/5 hover:text-black"}`}>
             Dashboard
           </a>
+          {session.user?.isAdmin && (
+            <a href="/admin"
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors
+                          ${isDark ? "text-amber-400 hover:bg-white/8 hover:text-amber-300" : "text-amber-600 hover:bg-black/5 hover:text-amber-700"}`}>
+              <span className="text-xs">⚙</span> 관리자
+            </a>
+          )}
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
             className={`w-full text-left flex items-center px-3 py-2 text-sm transition-colors
