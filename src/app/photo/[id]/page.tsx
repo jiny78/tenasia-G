@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { S3Client, HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { createHash } from "crypto";
-import { getAllPhotos } from "@/lib/r2";
+import { getAllPhotos, cacheOrientation } from "@/lib/r2";
 import { decodePhotoKey, encodePhotoKey } from "@/lib/photoKey";
 import PhotoDetailClient from "@/components/PhotoDetailClient";
 
@@ -50,6 +50,7 @@ async function getPhotoMeta(id: string): Promise<PhotoMeta | null> {
       const sharp = (await import("sharp")).default;
       const meta  = await sharp(Buffer.concat(chunks)).metadata();
       width = meta.width ?? 0; height = meta.height ?? 0; format = meta.format ?? "jpeg";
+      cacheOrientation(key, width, height);
     } catch { /* ignore */ }
 
     const allPhotos = await getAllPhotos();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import PhotoGrid from "@/components/PhotoGrid";
 import FilterBar from "@/components/FilterBar";
@@ -9,19 +10,25 @@ import { useCredits } from "@/lib/credits";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
 import { THEMES, ThemeKey } from "@/lib/themes";
 
-// 모든 API 호출은 /api/gallery/* 서버 프록시를 통해 처리
-// → API 키, R2 URL이 클라이언트에 노출되지 않음
-
-export type Filters = {
-  person: string;
-  event: string;
-  year: string;
-};
-
-const EMPTY: Filters = { person: "", event: "", year: "" };
-
 export type { ThemeKey };
 export { THEMES };
+
+export type Filters = {
+  q:           string;
+  person:      string;
+  event:       string;
+  dateFrom:    string;  // YYYY-MM
+  dateTo:      string;  // YYYY-MM
+  year:        string;  // legacy compat
+  orientation: "" | "landscape" | "portrait" | "square";
+  agency:      string;
+};
+
+const EMPTY: Filters = {
+  q: "", person: "", event: "", dateFrom: "", dateTo: "", year: "", orientation: "", agency: "",
+};
+
+type AgencyEntry = { name: string; count: number };
 
 // ── 사용자 아바타 드롭다운 ────────────────────────────────────
 function UserMenu({ theme }: { theme: ThemeKey }) {
@@ -100,33 +107,30 @@ function UserMenu({ theme }: { theme: ThemeKey }) {
 }
 
 export default function Home() {
+  const router        = useRouter();
   const { lang, setLang } = useLang();
   const tr = TRANSLATIONS[lang];
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [persons, setPersons] = useState<Person[]>([]);
-  const [dates, setDates] = useState<DateEntry[]>([]);
-  const [events, setEvents] = useState<GalleryEvent[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState<Filters>(EMPTY);
-  const [theme, setTheme] = useState<ThemeKey>("black");
+  const [photos,    setPhotos]    = useState<Photo[]>([]);
+  const [persons,   setPersons]   = useState<Person[]>([]);
+  const [dates,     setDates]     = useState<DateEntry[]>([]);
+  const [events,    setEvents]    = useState<GalleryEvent[]>([]);
+  const [agencies,  setAgencies]  = useState<AgencyEntry[]>([]);
+  const [total,     setTotal]     = useState(0);
+  const [page,      setPage]      = useState(1);
+  const [loading,   setLoading]   = useState(false);
+  const [filters,   setFilters]   = useState<Filters>(EMPTY);
+  const [theme,     setTheme]     = useState<ThemeKey>("black");
 
-  // useCredits hook (로그인→DB, 비로그인→localStorage)
   const { balance: credits, refresh: refreshCredits } = useCredits();
 
-  // localStorage에서 테마 복원
   useEffect(() => {
     const saved = localStorage.getItem("tg-theme") as ThemeKey | null;
     if (saved && THEMES[saved]) setTheme(saved);
   }, []);
 
-  // 전역 저장 단축키 차단 (Ctrl+S, Ctrl+U)
   useEffect(() => {
     const block = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && ["s", "S", "u", "U"].includes(e.key)) {
-        e.preventDefault();
-      }
+      if ((e.ctrlKey || e.metaKey) && ["s", "S", "u", "U"].includes(e.key)) e.preventDefault();
     };
     document.addEventListener("keydown", block);
     return () => document.removeEventListener("keydown", block);
@@ -139,19 +143,25 @@ export default function Home() {
 
   const t = THEMES[theme];
 
+  /* ── API 호출 ──────────────────────────────────────────────── */
   const fetchPhotos = useCallback(async (f: Filters, p: number) => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (f.person) params.set("person", f.person);
-    if (f.event) params.set("role", f.event);
-    if (f.year) params.set("year", f.year);
-    params.set("page", String(p));
+    if (f.q)           params.set("q",           f.q);
+    if (f.person)      params.set("person",      f.person);
+    if (f.event)       params.set("event",       f.event);
+    if (f.dateFrom)    params.set("dateFrom",    f.dateFrom);
+    if (f.dateTo)      params.set("dateTo",      f.dateTo);
+    if (f.year)        params.set("year",        f.year);
+    if (f.orientation) params.set("orientation", f.orientation);
+    if (f.agency)      params.set("agency",      f.agency);
+    params.set("page",  String(p));
     params.set("limit", "12");
     try {
-      const res = await fetch(`/api/gallery?${params}`);
+      const res  = await fetch(`/api/gallery?${params}`);
       const data = await res.json();
       if (p === 1) setPhotos(data.photos ?? []);
-      else setPhotos((prev) => [...prev, ...(data.photos ?? [])]);
+      else         setPhotos((prev) => [...prev, ...(data.photos ?? [])]);
       setTotal(data.total ?? 0);
       setPage(p);
     } catch (e) { console.error(e); }
@@ -159,24 +169,54 @@ export default function Home() {
   }, []);
 
   const fetchEvents = useCallback(async (year: string) => {
-    const params = year ? `?year=${year}` : "";
+    const qs = year ? `?year=${year}` : "";
     try {
-      const res = await fetch(`/api/gallery/events${params}`);
+      const res  = await fetch(`/api/gallery/events${qs}`);
       const data = await res.json();
       setEvents(data.events ?? []);
     } catch (e) { console.error(e); }
   }, []);
 
+  /* ── 초기 로드: URL → Filters 복원 ────────────────────────── */
   useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const initial: Filters = {
+      q:           sp.get("q")           ?? "",
+      person:      sp.get("person")      ?? "",
+      event:       sp.get("event")       ?? "",
+      dateFrom:    sp.get("dateFrom")    ?? "",
+      dateTo:      sp.get("dateTo")      ?? "",
+      year:        sp.get("year")        ?? "",
+      orientation: (sp.get("orientation") ?? "") as Filters["orientation"],
+      agency:      sp.get("agency")      ?? "",
+    };
+    setFilters(initial);
+
     fetch("/api/gallery/persons")
       .then((r) => r.json()).then((d) => setPersons(d.persons ?? [])).catch(console.error);
     fetch("/api/gallery/dates")
       .then((r) => r.json()).then((d) => setDates(d.dates ?? [])).catch(console.error);
-    fetchEvents("");
-    fetchPhotos(EMPTY, 1);
-  }, [fetchPhotos, fetchEvents]);
+    fetch("/api/gallery/agencies")
+      .then((r) => r.json()).then((d) => setAgencies(d.agencies ?? [])).catch(console.error);
+    fetchEvents(initial.year || "");
+    fetchPhotos(initial, 1);
+  }, [fetchPhotos, fetchEvents]); // stable callbacks — runs once
 
+  /* ── 필터 변경 핸들러 ──────────────────────────────────────── */
   const handleFilter = (next: Filters) => {
+    // URL 업데이트
+    const params = new URLSearchParams();
+    if (next.q)           params.set("q",           next.q);
+    if (next.person)      params.set("person",      next.person);
+    if (next.event)       params.set("event",       next.event);
+    if (next.dateFrom)    params.set("dateFrom",    next.dateFrom);
+    if (next.dateTo)      params.set("dateTo",      next.dateTo);
+    if (next.year)        params.set("year",        next.year);
+    if (next.orientation) params.set("orientation", next.orientation);
+    if (next.agency)      params.set("agency",      next.agency);
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+
     if (next.year !== filters.year) fetchEvents(next.year);
     setFilters(next);
     fetchPhotos(next, 1);
@@ -186,9 +226,9 @@ export default function Home() {
     <div className={`min-h-screen ${t.bg} ${t.text} transition-colors duration-300`}>
       {/* Header */}
       <header className={`sticky top-0 z-30 ${t.header} backdrop-blur border-b ${t.border} transition-colors duration-300`}>
-        <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center gap-6">
+        <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-start gap-6">
           {/* 로고 */}
-          <a href="/" className="flex items-baseline gap-2 shrink-0 hover:opacity-80 transition-opacity">
+          <a href="/" className="flex items-baseline gap-2 shrink-0 hover:opacity-80 transition-opacity mt-1">
             <span className="text-base font-bold tracking-[0.15em] uppercase">Tenasia</span>
             <span className={`text-[10px] tracking-[0.4em] uppercase ${t.sub}`}>{tr.gallery}</span>
           </a>
@@ -199,20 +239,20 @@ export default function Home() {
               persons={persons}
               dates={dates}
               events={events}
+              agencies={agencies}
               filters={filters}
               theme={theme}
+              total={total}
               onChange={handleFilter}
             />
           </div>
 
           {/* 우측: 크레딧 + 테마 + 언어 + 유저 */}
-          <div className="flex items-center gap-3 shrink-0">
-            {credits > 0 ? (
+          <div className="flex items-center gap-3 shrink-0 mt-1">
+            {credits > 0 && (
               <span className="text-xs tabular-nums text-white bg-white/15 px-2 py-0.5 rounded-full">
                 ↓ {credits}
               </span>
-            ) : (
-              <span className={`text-xs tabular-nums ${t.sub}`}>{total.toLocaleString()}</span>
             )}
 
             {/* 언어 토글 */}

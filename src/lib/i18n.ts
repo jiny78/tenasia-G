@@ -123,6 +123,14 @@ type TranslationSet = {
   accountCredentialSubmitted: string;
   // Date labels
   accountViewAll: string;
+  // Filter bar (new)
+  searchBarPlaceholder: string;
+  dateRange: string;
+  agency: string;
+  from: string;
+  to: string;
+  clearAll: string;
+  filterAll: string;
   // Photo detail
   photoArtist: string;
   photoEvent: string;
@@ -200,6 +208,14 @@ export const TRANSLATIONS: Record<Lang, TranslationSet> = {
     policiesTableOfContents: "Table of Contents",
     policiesBackToAll: "View All Policies",
     footerLegal: "Legal",
+    // Filter bar (new)
+    searchBarPlaceholder: "Search artist, event, keyword...",
+    dateRange:   "Date Range",
+    agency:      "Agency",
+    from:        "From",
+    to:          "To",
+    clearAll:    "Clear all",
+    filterAll:   "All",
     // Auth
     authEmail: "Email",
     authPassword: "Password",
@@ -333,6 +349,14 @@ export const TRANSLATIONS: Record<Lang, TranslationSet> = {
     policiesTableOfContents: "목차",
     policiesBackToAll: "전체 정책 보기",
     footerLegal: "법적 고지",
+    // Filter bar (new)
+    searchBarPlaceholder: "아티스트, 행사, 키워드 검색...",
+    dateRange:   "날짜 범위",
+    agency:      "소속사",
+    from:        "시작",
+    to:          "종료",
+    clearAll:    "전체 초기화",
+    filterAll:   "전체",
     // Auth
     authEmail: "이메일",
     authPassword: "비밀번호",
