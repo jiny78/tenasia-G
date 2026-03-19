@@ -184,6 +184,7 @@ export default function Home() {
     } catch (e) { console.error(e); }
   }, []);
 
+
   /* ── 초기 로드: URL → Filters 복원 ────────────────────────── */
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
@@ -199,13 +200,16 @@ export default function Home() {
     };
     setFilters(initial);
 
-    fetch("/api/gallery/persons")
-      .then((r) => r.json()).then((d) => setPersons(d.persons ?? [])).catch(console.error);
-    fetch("/api/gallery/dates")
-      .then((r) => r.json()).then((d) => setDates(d.dates ?? [])).catch(console.error);
-    fetch("/api/gallery/agencies")
-      .then((r) => r.json()).then((d) => setAgencies(d.agencies ?? [])).catch(console.error);
-    fetchEvents(initial.year || "");
+    const metaQs = initial.year ? `?year=${initial.year}` : "";
+    fetch(`/api/gallery/meta${metaQs}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setPersons(d.persons   ?? []);
+        setDates(d.dates       ?? []);
+        setEvents(d.events     ?? []);
+        setAgencies(d.agencies ?? []);
+      })
+      .catch(console.error);
     fetchPhotos(initial, 1);
   }, [fetchPhotos, fetchEvents]); // stable callbacks — runs once
 

@@ -105,28 +105,36 @@ async function listPrefix(prefix: string): Promise<Photo[]> {
 // ── 인메모리 캐시 ─────────────────────────────────────────────
 let _cache: Photo[] | null = null;
 let _cacheAt = 0;
-const CACHE_TTL = 5 * 60 * 1000;
+let _fetching: Promise<Photo[]> | null = null;
+const CACHE_TTL = 10 * 60 * 1000; // 10분
 
 export async function getAllPhotos(): Promise<Photo[]> {
   if (_cache && Date.now() - _cacheAt < CACHE_TTL) return _cache;
+  // 동시 요청이 여러 개여도 R2 listing은 1번만
+  if (_fetching) return _fetching;
 
-  const topR = await s3.send(
-    new ListObjectsV2Command({ Bucket: BUCKET, Prefix: "photos/", Delimiter: "/", MaxKeys: 100 })
-  );
-  const prefixes = (topR.CommonPrefixes ?? []).map((p) => p.Prefix ?? "");
-  const chunks = await Promise.all(prefixes.map(listPrefix));
-  const photos = chunks.flat();
+  _fetching = (async () => {
+    const topR = await s3.send(
+      new ListObjectsV2Command({ Bucket: BUCKET, Prefix: "photos/", Delimiter: "/", MaxKeys: 100 })
+    );
+    const prefixes = (topR.CommonPrefixes ?? []).map((p) => p.Prefix ?? "");
+    const chunks = await Promise.all(prefixes.map(listPrefix));
+    const photos = chunks.flat();
 
-  photos.sort((a, b) => {
-    if (!a.date && !b.date) return 0;
-    if (!a.date) return 1;
-    if (!b.date) return -1;
-    return b.date.localeCompare(a.date);
-  });
+    photos.sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return b.date.localeCompare(a.date);
+    });
 
-  _cache = photos;
-  _cacheAt = Date.now();
-  return photos;
+    _cache = photos;
+    _cacheAt = Date.now();
+    _fetching = null;
+    return photos;
+  })();
+
+  return _fetching;
 }
 
 // ── 필터 + 페이지네이션 ───────────────────────────────────────
