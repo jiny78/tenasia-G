@@ -233,8 +233,19 @@ export default function Home() {
     fetchPhotos(next, 1);
   };
 
+  const isDark = theme === "black" || theme === "charcoal";
+
   return (
     <div className={`min-h-screen ${t.bg} ${t.text} transition-colors duration-300`}>
+      {/* 로딩 바 */}
+      {loading && (
+        <div className="loading-bar-track">
+          <div
+            className="loading-bar-fill"
+            style={{ background: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.5)" }}
+          />
+        </div>
+      )}
       {/* Header */}
       <header className={`sticky top-0 z-30 ${t.header} backdrop-blur border-b ${t.border} transition-colors duration-300`}>
         <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-start gap-6">

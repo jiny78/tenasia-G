@@ -25,6 +25,29 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* ── 상단 로딩 바 ────────────────────────────────────────────── */
+@keyframes loading-bar {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(-10%); }
+  100% { transform: translateX(0%); }
+}
+@keyframes loading-bar-exit {
+  0%   { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
+}
+.loading-bar-track {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  z-index: 9999;
+  overflow: hidden;
+}
+.loading-bar-fill {
+  height: 100%;
+  width: 100%;
+  animation: loading-bar 2.4s cubic-bezier(0.1, 0.4, 0.2, 1) forwards;
+}
+
 /* ── 사진 보호 ───────────────────────────────────────────────── */
 img {
   -webkit-user-drag: none;
