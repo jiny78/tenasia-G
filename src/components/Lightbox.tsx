@@ -172,7 +172,9 @@ export default function Lightbox({ photos, index, onClose, onNav, onDownload }: 
               className={`relative w-12 h-12 shrink-0 overflow-hidden transition-all duration-150 ${
                 i === index ? "ring-1 ring-white opacity-100" : "opacity-30 hover:opacity-60"
               }`}>
-              <Image src={p.url} alt="" fill className="object-cover" unoptimized />
+              <Image
+                src={`/api/image?path=${encodeURIComponent(p.id)}&w=96`}
+                alt="" fill className="object-cover" unoptimized />
             </button>
           ))}
         </div>

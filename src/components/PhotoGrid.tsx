@@ -240,6 +240,11 @@ function BookLayout({ photos, isDark, onOpen, onDownload, sectionOffset }: {
   );
 }
 
+/* ─── 썸네일 URL 생성 ────────────────────────────────────────── */
+function thumbUrl(photo: Photo, w: number): string {
+  return `/api/image?path=${encodeURIComponent(photo.id)}&w=${w}`;
+}
+
 /* ─── 카드 ───────────────────────────────────────────────────── */
 function PhotoCard({
   photo, aspect, className = "", isDark, onClick, onDownload, priority = false,
@@ -260,9 +265,9 @@ function PhotoCard({
       className={`photo-shield group relative overflow-hidden ${bgCls} ${aspect ?? ""} ${className}`}
       onContextMenu={noCtx}
     >
-      {/* 이미지 */}
+      {/* 이미지 — 그리드 썸네일 480px */}
       <Image
-        src={photo.url}
+        src={thumbUrl(photo, 480)}
         alt={photo.person ?? "photo"}
         fill={!!aspect}
         width={aspect ? undefined : 480}
