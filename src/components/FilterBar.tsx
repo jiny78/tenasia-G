@@ -234,71 +234,24 @@ export default function FilterBar({
         </div>
 
         {/* ── Date Range ── */}
-        <div className="relative shrink-0">
-          <button
-            onClick={() => togglePill("date")}
-            className={`${pillBase} ${(hasDate || activePill === "date") ? pillActive : pillInactive}`}>
-            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <rect x="1" y="2.5" width="10" height="8.5" rx="1.5"/>
-              <path d="M4 1v3M8 1v3M1 6.5h10"/>
-            </svg>
-            {dateLabel}
-            {hasDate && <span className="ml-0.5">✕</span>}
-          </button>
-
-          {activePill === "date" && (
-            <DropPanel isDark={isDark} dropBg={dropBg} className="w-60">
-              <div className="p-3 flex flex-col gap-3">
-                {/* From */}
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] uppercase tracking-widest w-8 shrink-0 ${subText}`}>{tr.from}</span>
-                  <select
-                    value={filters.dateFrom || ""}
-                    onChange={(e) => set({ dateFrom: e.target.value, year: "" })}
-                    style={{ background: isDark ? "#1a1a1a" : "#fff" }}
-                    className={`flex-1 text-xs border rounded px-2 py-1 focus:outline-none
-                                ${isDark ? "border-white/15 text-white" : "border-black/15 text-black"}`}>
-                    <option value="">—</option>
-                    {yearMonths.map((ym) => <option key={ym} value={ym}>{ym}</option>)}
-                  </select>
-                </div>
-                {/* To */}
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] uppercase tracking-widest w-8 shrink-0 ${subText}`}>{tr.to}</span>
-                  <select
-                    value={filters.dateTo || ""}
-                    onChange={(e) => set({ dateTo: e.target.value, year: "" })}
-                    style={{ background: isDark ? "#1a1a1a" : "#fff" }}
-                    className={`flex-1 text-xs border rounded px-2 py-1 focus:outline-none
-                                ${isDark ? "border-white/15 text-white" : "border-black/15 text-black"}`}>
-                    <option value="">—</option>
-                    {yearMonths.map((ym) => <option key={ym} value={ym}>{ym}</option>)}
-                  </select>
-                </div>
-                {/* Year chips */}
-                <div className="flex flex-wrap gap-1 pt-1 border-t border-inherit">
-                  {years.map((y) => (
-                    <button key={y}
-                      onClick={() => { set({ year: String(y), dateFrom: "", dateTo: "" }); setActivePill(null); }}
-                      className={`px-2 py-0.5 text-[11px] rounded-full border transition-all ${
-                        filters.year === String(y)
-                          ? (isDark ? "bg-white text-black border-white" : "bg-black text-white border-black")
-                          : (isDark ? "border-white/15 text-white/50 hover:border-white/35" : "border-black/15 text-black/50 hover:border-black/35")
-                      }`}>
-                      {y}
-                    </button>
-                  ))}
-                </div>
-                {hasDate && (
-                  <button onClick={() => { set({ dateFrom: "", dateTo: "", year: "" }); setActivePill(null); }}
-                    className={`text-[11px] text-left ${subText} hover:${mainText} transition-colors`}>
-                    ✕ Clear date
-                  </button>
-                )}
-              </div>
-            </DropPanel>
-          )}
-        </div>
+        <DateRangePill
+          filters={filters}
+          years={years}
+          yearMonths={yearMonths}
+          hasDate={hasDate}
+          activePill={activePill}
+          pillBase={pillBase}
+          pillActive={pillActive}
+          pillInactive={pillInactive}
+          isDark={isDark}
+          dropBg={dropBg}
+          subText={subText}
+          mainText={mainText}
+          dateLabel={dateLabel}
+          onToggle={() => togglePill("date")}
+          onApply={(patch) => { onChange({ ...filters, ...patch }); setActivePill(null); }}
+          onClear={() => { set({ dateFrom: "", dateTo: "", year: "" }); setActivePill(null); }}
+        />
 
         {/* ── Orientation ── */}
         <div className="relative shrink-0">
@@ -418,6 +371,118 @@ export default function FilterBar({
             {tr.clearAll}
           </button>
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── DateRangePill ─────────────────────────────────────────── */
+function DateRangePill({
+  filters, years, yearMonths, hasDate, activePill, pillBase, pillActive, pillInactive,
+  isDark, dropBg, subText, mainText, dateLabel,
+  onToggle, onApply, onClear,
+}: {
+  filters: Filters;
+  years: number[];
+  yearMonths: string[];
+  hasDate: boolean;
+  activePill: ActivePill;
+  pillBase: string;
+  pillActive: string;
+  pillInactive: string;
+  isDark: boolean;
+  dropBg: string;
+  subText: string;
+  mainText: string;
+  dateLabel: string;
+  onToggle: () => void;
+  onApply: (patch: Partial<Filters>) => void;
+  onClear: () => void;
+}) {
+  const [localFrom, setLocalFrom] = useState(filters.dateFrom || "");
+  const [localTo,   setLocalTo]   = useState(filters.dateTo   || "");
+
+  // 외부에서 필터가 초기화될 때 로컬 상태도 리셋
+  useEffect(() => { setLocalFrom(filters.dateFrom || ""); }, [filters.dateFrom]);
+  useEffect(() => { setLocalTo(filters.dateTo     || ""); }, [filters.dateTo]);
+
+  const canApply = localFrom || localTo;
+
+  return (
+    <div className="relative shrink-0">
+      <button
+        onClick={onToggle}
+        className={`${pillBase} ${(hasDate || activePill === "date") ? pillActive : pillInactive}`}>
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <rect x="1" y="2.5" width="10" height="8.5" rx="1.5"/>
+          <path d="M4 1v3M8 1v3M1 6.5h10"/>
+        </svg>
+        {dateLabel}
+        {hasDate && <span className="ml-0.5">✕</span>}
+      </button>
+
+      {activePill === "date" && (
+        <DropPanel isDark={isDark} dropBg={dropBg} className="w-60">
+          <div className="p-3 flex flex-col gap-3">
+            {/* Year chips — 즉시 적용 */}
+            <div className="flex flex-wrap gap-1">
+              {years.map((y) => (
+                <button key={y}
+                  onClick={() => onApply({ year: String(y), dateFrom: "", dateTo: "" })}
+                  className={`px-2 py-0.5 text-[11px] rounded-full border transition-all ${
+                    filters.year === String(y)
+                      ? (isDark ? "bg-white text-black border-white" : "bg-black text-white border-black")
+                      : (isDark ? "border-white/15 text-white/50 hover:border-white/35" : "border-black/15 text-black/50 hover:border-black/35")
+                  }`}>
+                  {y}
+                </button>
+              ))}
+            </div>
+
+            {/* From / To + Apply */}
+            <div className={`flex flex-col gap-2 pt-2 border-t border-inherit`}>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] uppercase tracking-widest w-8 shrink-0 ${subText}`}>From</span>
+                <select
+                  value={localFrom}
+                  onChange={(e) => setLocalFrom(e.target.value)}
+                  style={{ background: isDark ? "#1a1a1a" : "#fff" }}
+                  className={`flex-1 text-xs border rounded px-2 py-1 focus:outline-none
+                              ${isDark ? "border-white/15 text-white" : "border-black/15 text-black"}`}>
+                  <option value="">—</option>
+                  {yearMonths.map((ym) => <option key={ym} value={ym}>{ym}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] uppercase tracking-widest w-8 shrink-0 ${subText}`}>To</span>
+                <select
+                  value={localTo}
+                  onChange={(e) => setLocalTo(e.target.value)}
+                  style={{ background: isDark ? "#1a1a1a" : "#fff" }}
+                  className={`flex-1 text-xs border rounded px-2 py-1 focus:outline-none
+                              ${isDark ? "border-white/15 text-white" : "border-black/15 text-black"}`}>
+                  <option value="">—</option>
+                  {yearMonths.map((ym) => <option key={ym} value={ym}>{ym}</option>)}
+                </select>
+              </div>
+              {canApply && (
+                <button
+                  onClick={() => onApply({ dateFrom: localFrom, dateTo: localTo, year: "" })}
+                  className={`w-full py-1.5 text-[11px] font-medium rounded transition-all
+                    ${isDark ? "bg-white text-black hover:bg-white/90" : "bg-black text-white hover:bg-black/80"}`}>
+                  Apply
+                </button>
+              )}
+            </div>
+
+            {hasDate && (
+              <button onClick={onClear}
+                className={`text-[11px] text-left ${subText} hover:${mainText} transition-colors`}>
+                ✕ Clear date
+              </button>
+            )}
+          </div>
+        </DropPanel>
       )}
     </div>
   );

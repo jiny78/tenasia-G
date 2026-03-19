@@ -202,7 +202,7 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
 
               {/* 메인 이미지 */}
               <Image
-                src={`/api/image?path=${encodeURIComponent(data.key)}`}
+                src={`/api/image?path=${encodeURIComponent(data.key)}&w=1600`}
                 alt={data.person ?? "photo"}
                 width={data.resolution.width  || 1200}
                 height={data.resolution.height || 800}

@@ -134,7 +134,7 @@ export default function Lightbox({ photos, index, onClose, onNav, onDownload }: 
           )}
           <Image
             key={photo.id}
-            src={`/api/image?path=${encodeURIComponent(photo.id)}`}
+            src={`/api/image?path=${encodeURIComponent(photo.id)}&w=1400`}
             alt={photo.person ?? "photo"}
             width={1200}
             height={900}
