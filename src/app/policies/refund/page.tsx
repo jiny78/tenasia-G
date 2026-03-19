@@ -116,8 +116,8 @@ export default function RefundPage() {
         <ol className="list-decimal pl-5 space-y-1.5">
           <li>
             Email{" "}
-            <a href="mailto:support@tenasia.co.kr" className="underline underline-offset-2">
-              support@tenasia.co.kr
+            <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+              tenasia.trend@gmail.com
             </a>{" "}
             within fourteen (14) days of the purchase date
           </li>
@@ -141,8 +141,8 @@ export default function RefundPage() {
         </p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Contact{" "}
-            <a href="mailto:sales@tenasia.co.kr" className="underline underline-offset-2">
-              sales@tenasia.co.kr
+            <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+              tenasia.trend@gmail.com
             </a>{" "}
             with your order number and the intended commercial use
           </li>
@@ -180,8 +180,8 @@ export default function RefundPage() {
         </ul>
         <p className="mt-3">
           To resolve a payment concern, contact{" "}
-          <a href="mailto:support@tenasia.co.kr" className="underline underline-offset-2">
-            support@tenasia.co.kr
+          <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+            tenasia.trend@gmail.com
           </a>{" "}
           before contacting your bank.
         </p>

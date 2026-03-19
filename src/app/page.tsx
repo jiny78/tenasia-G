@@ -239,10 +239,13 @@ export default function Home() {
     <div className={`min-h-screen ${t.bg} ${t.text} transition-colors duration-300`}>
       {/* 로딩 바 */}
       {loading && (
-        <div className="loading-bar-track">
+        <div
+          className="loading-center-track"
+          style={{ background: isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)" }}
+        >
           <div
-            className="loading-bar-fill"
-            style={{ background: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.5)" }}
+            className="loading-center-fill"
+            style={{ background: isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.55)" }}
           />
         </div>
       )}

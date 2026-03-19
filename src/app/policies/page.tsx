@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Legal & Policies | Tenasia Gallery",
   description:
-    "Legal policies, licensing terms, and privacy information for Tenasia Gallery — operated by TenAsia Media Corp.",
+    "Legal policies, licensing terms, and privacy information for Tenasia Gallery — operated by The Korea Entertainment Media.",
 };
 
 const POLICY_CARDS = [
@@ -45,7 +45,7 @@ export default function PoliciesPage() {
     <div className="max-w-4xl mx-auto px-6 py-12">
       <h1 className="text-3xl font-bold mb-2">Legal &amp; Policies</h1>
       <p className="text-sm opacity-50 mb-10">
-        Tenasia Gallery — Operated by TenAsia Media Corp.
+        Tenasia Gallery — Operated by The Korea Entertainment Media.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -65,10 +65,10 @@ export default function PoliciesPage() {
       <p className="mt-12 text-sm opacity-50">
         For legal inquiries:{" "}
         <a
-          href="mailto:legal@tenasia.co.kr"
+          href="mailto:tenasia.trend@gmail.com"
           className="underline underline-offset-2 hover:opacity-100 transition-opacity"
         >
-          legal@tenasia.co.kr
+          tenasia.trend@gmail.com
         </a>
       </p>
     </div>

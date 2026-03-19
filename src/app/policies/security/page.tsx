@@ -22,7 +22,7 @@ export default function SecurityPage() {
     <PolicyLayout title="Security Policy" tocItems={TOC} currentPath="/policies/security">
       <PolicySection id="commitment" title="Our Commitment">
         <p>
-          TenAsia Media Corp. is committed to maintaining the security of our platform,
+          The Korea Entertainment Media is committed to maintaining the security of our platform,
           protecting the personal information of our users, and safeguarding the intellectual
           property of our photographers. Our security program is built on three core principles:
         </p>
@@ -111,7 +111,7 @@ export default function SecurityPage() {
           </li>
           <li>
             <strong>Metadata Embedding:</strong> All images contain EXIF and IPTC copyright
-            metadata identifying TenAsia Media Corp. as the rights holder
+            metadata identifying The Korea Entertainment Media as the rights holder
           </li>
           <li>
             <strong>Forensic Tracking:</strong> Downloaded originals may contain imperceptible
@@ -165,8 +165,8 @@ export default function SecurityPage() {
         </p>
         <p>
           Security reports:{" "}
-          <a href="mailto:security@tenasia.co.kr" className="underline underline-offset-2">
-            security@tenasia.co.kr
+          <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+            tenasia.trend@gmail.com
           </a>
         </p>
       </PolicySection>

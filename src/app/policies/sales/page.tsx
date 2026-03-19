@@ -68,8 +68,8 @@ export default function SalesPage() {
           <li>
             <strong>Bank Transfer:</strong> Available for bulk or enterprise orders
             exceeding a minimum threshold; contact{" "}
-            <a href="mailto:sales@tenasia.co.kr" className="underline underline-offset-2">
-              sales@tenasia.co.kr
+            <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+              tenasia.trend@gmail.com
             </a>
           </li>
         </ul>
@@ -125,8 +125,8 @@ export default function SalesPage() {
         </ul>
         <p className="mt-3">
           If you experience difficulty accessing your download, contact{" "}
-          <a href="mailto:support@tenasia.co.kr" className="underline underline-offset-2">
-            support@tenasia.co.kr
+          <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+            tenasia.trend@gmail.com
           </a>{" "}
           within 90 days of purchase.
         </p>
@@ -146,8 +146,8 @@ export default function SalesPage() {
         </ul>
         <p className="mt-3">
           Contact:{" "}
-          <a href="mailto:sales@tenasia.co.kr" className="underline underline-offset-2">
-            sales@tenasia.co.kr
+          <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+            tenasia.trend@gmail.com
           </a>
         </p>
       </PolicySection>
@@ -170,8 +170,8 @@ export default function SalesPage() {
         <p>
           If you require a modified invoice format for your organization's accounting
           requirements, contact{" "}
-          <a href="mailto:support@tenasia.co.kr" className="underline underline-offset-2">
-            support@tenasia.co.kr
+          <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+            tenasia.trend@gmail.com
           </a>
           .
         </p>

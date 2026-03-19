@@ -80,7 +80,7 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
   /* ── download handler ──────────────────────────────────── */
   const handleDownload = useCallback(async () => {
     if (license === "extended") {
-      window.location.href = "mailto:sales@tenasia.com?subject=Extended%20License%20Inquiry";
+      window.location.href = "mailto:tenasia.trend@gmail.com?subject=Extended%20License%20Inquiry";
       return;
     }
     if (!session?.user) {

@@ -19,7 +19,7 @@ export default function Footer() {
     <footer className="fixed bottom-0 left-0 right-0 z-20 bg-black/85 backdrop-blur-md border-t border-white/10">
       <div className="max-w-screen-2xl mx-auto px-6 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <p className="text-xs text-white/50 shrink-0">
-          © 2026 TenAsia Media Corp. All rights reserved.
+          © 2026 The Korea Entertainment Media. All rights reserved.
         </p>
         <nav className="flex flex-wrap gap-x-4 gap-y-1.5">
           {links.map(({ href, label }) => (

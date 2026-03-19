@@ -5,7 +5,7 @@ import PolicySection from "@/components/policies/PolicySection";
 export const metadata: Metadata = {
   title: "Privacy Policy | Tenasia Gallery",
   description:
-    "Learn how TenAsia Media Corp. collects, uses, and protects your personal information on Tenasia Gallery.",
+    "Learn how The Korea Entertainment Media collects, uses, and protects your personal information on Tenasia Gallery.",
 };
 
 const TOC = [
@@ -26,8 +26,8 @@ export default function PrivacyPage() {
     <PolicyLayout title="Privacy Policy" tocItems={TOC} currentPath="/policies/privacy">
       <PolicySection id="introduction" title="Introduction">
         <p>
-          TenAsia Media Corp. ("TenAsia," "we," "our," or "us") operates the Tenasia Gallery
-          platform at tenasia.co.kr (the "Service"), a professional photo licensing service
+          The Korea Entertainment Media ("Tenasia," "we," "our," or "us") operates the Tenasia Gallery
+          platform at tenasia-g.vercel.app (the "Service"), a professional photo licensing service
           dedicated to K-pop and Korean entertainment photography.
         </p>
         <p>
@@ -110,7 +110,7 @@ export default function PrivacyPage() {
 
       <PolicySection id="transfers" title="International Data Transfers">
         <p>
-          TenAsia Media Corp. is based in Seoul, Republic of Korea. If you access the Service
+          The Korea Entertainment Media is based in Seoul, Republic of Korea. If you access the Service
           from outside Korea, your information may be transferred to and processed in Korea
           or other countries where our service providers operate.
         </p>
@@ -156,8 +156,8 @@ export default function PrivacyPage() {
         </ul>
         <p className="mt-3">
           To exercise any of these rights, contact us at{" "}
-          <a href="mailto:privacy@tenasia.co.kr" className="underline underline-offset-2">
-            privacy@tenasia.co.kr
+          <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+            tenasia.trend@gmail.com
           </a>
           . We will respond within 30 days of receiving your request.
         </p>
@@ -187,8 +187,8 @@ export default function PrivacyPage() {
           If we become aware that we have inadvertently collected such information, we will
           delete it promptly. If you believe we have collected information from a minor, please
           contact us at{" "}
-          <a href="mailto:privacy@tenasia.co.kr" className="underline underline-offset-2">
-            privacy@tenasia.co.kr
+          <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+            tenasia.trend@gmail.com
           </a>
           .
         </p>
@@ -201,11 +201,11 @@ export default function PrivacyPage() {
         </p>
         <ul className="list-none space-y-1 mt-2">
           <li><strong>Email:</strong>{" "}
-            <a href="mailto:privacy@tenasia.co.kr" className="underline underline-offset-2">
-              privacy@tenasia.co.kr
+            <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+              tenasia.trend@gmail.com
             </a>
           </li>
-          <li><strong>Company:</strong> TenAsia Media Corp.</li>
+          <li><strong>Company:</strong> The Korea Entertainment Media</li>
           <li><strong>Address:</strong> Seoul, Republic of Korea</li>
         </ul>
       </PolicySection>

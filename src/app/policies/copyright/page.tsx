@@ -23,7 +23,7 @@ export default function CopyrightPage() {
       <PolicySection id="ownership" title="Ownership of Content">
         <p>
           All photographs, images, and associated metadata available on Tenasia Gallery are
-          the exclusive intellectual property of TenAsia Media Corp. or its contracted
+          the exclusive intellectual property of The Korea Entertainment Media or its contracted
           photographers. All rights are reserved.
         </p>
         <p>
@@ -57,8 +57,8 @@ export default function CopyrightPage() {
           to a separate agreement specifying permitted use scope, geographic territory,
           license duration, and distribution channels. Additional fees may apply based
           on the nature and scale of commercial use. Contact{" "}
-          <a href="mailto:sales@tenasia.co.kr" className="underline underline-offset-2">
-            sales@tenasia.co.kr
+          <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+            tenasia.trend@gmail.com
           </a>{" "}
           for commercial license inquiries.
         </p>
@@ -69,8 +69,8 @@ export default function CopyrightPage() {
           licensed images (e.g., posters, calendars, merchandise, print-on-demand goods).
           Extended licenses are negotiated on a per-project basis and require a signed
           licensing agreement before use. Contact{" "}
-          <a href="mailto:sales@tenasia.co.kr" className="underline underline-offset-2">
-            sales@tenasia.co.kr
+          <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+            tenasia.trend@gmail.com
           </a>{" "}
           to initiate an extended license request.
         </p>
@@ -124,7 +124,7 @@ export default function CopyrightPage() {
       <PolicySection id="drm" title="Digital Rights Management">
         <p>
           All images distributed through Tenasia Gallery are embedded with EXIF and IPTC
-          copyright metadata identifying TenAsia Media Corp. as the rights holder. High-
+          copyright metadata identifying The Korea Entertainment Media as the rights holder. High-
           resolution downloads may also include visible or forensic digital watermarks.
         </p>
         <p>
@@ -155,8 +155,8 @@ export default function CopyrightPage() {
         </ul>
         <p className="mt-3">
           To report copyright infringement or for licensing inquiries, contact:{" "}
-          <a href="mailto:copyright@tenasia.co.kr" className="underline underline-offset-2">
-            copyright@tenasia.co.kr
+          <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
+            tenasia.trend@gmail.com
           </a>
         </p>
       </PolicySection>
