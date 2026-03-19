@@ -281,6 +281,7 @@ function PhotoCard({
         draggable={false}
         priority={priority}
         loading={priority ? undefined : "lazy"}
+        unoptimized
       />
 
       {/* TENASIA 워터마크 */}

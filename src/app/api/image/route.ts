@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
-const R2_BASE = process.env.R2_BASE ?? "";
+const s3 = new S3Client({
+  region: "auto",
+  endpoint: process.env.R2_ENDPOINT ?? "",
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
+  },
+});
+const BUCKET = process.env.R2_BUCKET ?? "";
 
 export async function GET(req: NextRequest) {
   const path = req.nextUrl.searchParams.get("path");
@@ -18,7 +27,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Invalid path", { status: 400 });
   }
 
-  if (!R2_BASE) {
+  if (!BUCKET) {
     return new NextResponse("Storage not configured", { status: 503 });
   }
 
@@ -26,16 +35,11 @@ export async function GET(req: NextRequest) {
   const wParam = req.nextUrl.searchParams.get("w");
   const targetWidth = wParam ? Math.min(parseInt(wParam, 10), 2400) : null;
 
-  const imageUrl = `${R2_BASE.replace(/\/$/, "")}/${decoded}`;
-
   try {
-    const res = await fetch(imageUrl, {
-      headers: { "User-Agent": "TenasiaGallery/1.0" },
-    });
-
-    if (!res.ok) return new NextResponse("Not found", { status: 404 });
-
-    const buffer = Buffer.from(await res.arrayBuffer());
+    const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: decoded }));
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of obj.Body as AsyncIterable<Uint8Array>) chunks.push(chunk);
+    const buffer = Buffer.concat(chunks);
 
     // 리사이징 요청인 경우 sharp로 처리
     if (targetWidth) {
@@ -54,7 +58,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const contentType = res.headers.get("content-type") ?? "image/jpeg";
+    const contentType = obj.ContentType ?? "image/jpeg";
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": contentType,
@@ -64,6 +68,6 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch {
-    return new NextResponse("Fetch failed", { status: 500 });
+    return new NextResponse("Not found", { status: 404 });
   }
 }

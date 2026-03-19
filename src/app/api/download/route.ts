@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
 const R2_BASE = process.env.R2_BASE ?? "";
+
+const s3 = new S3Client({
+  region: "auto",
+  endpoint: process.env.R2_ENDPOINT ?? "",
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
+  },
+});
+const BUCKET = process.env.R2_BUCKET ?? "";
 
 function verifyToken(url: string, token: string): boolean {
   const secret = process.env.DOWNLOAD_SECRET;
@@ -38,12 +49,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(url, { headers: { "User-Agent": "TenasiaGallery/1.0" } });
-    if (!res.ok) return new NextResponse("Image not found", { status: 404 });
-
-    const buffer = await res.arrayBuffer();
-    const contentType = res.headers.get("content-type") ?? "image/jpeg";
-    const filename = url.split("/").pop()?.split("?")[0] ?? "tenasia-photo.jpg";
+    // R2_BASE prefix를 제거해 S3 key 추출
+    const key = url.replace(R2_BASE.replace(/\/$/, "") + "/", "");
+    const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of obj.Body as AsyncIterable<Uint8Array>) chunks.push(chunk);
+    const buffer = Buffer.concat(chunks);
+    const contentType = obj.ContentType ?? "image/jpeg";
+    const filename = key.split("/").pop()?.split("?")[0] ?? "tenasia-photo.jpg";
 
     return new NextResponse(buffer, {
       headers: {

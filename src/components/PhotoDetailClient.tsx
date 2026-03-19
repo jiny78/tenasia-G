@@ -202,7 +202,7 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
 
               {/* 메인 이미지 */}
               <Image
-                src={data.url}
+                src={`/api/image?path=${encodeURIComponent(data.key)}`}
                 alt={data.person ?? "photo"}
                 width={data.resolution.width  || 1200}
                 height={data.resolution.height || 800}
@@ -211,6 +211,7 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
                 priority
                 draggable={false}
                 onLoad={() => setImgLoaded(true)}
+                unoptimized
               />
 
               {/* 워터마크 */}
@@ -381,13 +382,14 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
                              aspect-[3/4] ${isDark ? "bg-white/4" : "bg-black/5"} rounded-sm`}
                   onContextMenu={(e) => e.preventDefault()}>
                   <Image
-                    src={r.url}
+                    src={`/api/image?path=${encodeURIComponent(r.key)}`}
                     alt={r.person ?? "photo"}
                     fill
                     sizes="(max-width: 640px) 50vw, 25vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-[1.04]
                                select-none pointer-events-none"
                     draggable={false}
+                    unoptimized
                   />
                   {/* 워터마크 */}
                   <div className="absolute inset-0 pointer-events-none select-none" style={wmStyle} />
