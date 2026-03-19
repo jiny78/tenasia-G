@@ -4,8 +4,8 @@
  */
 
 export function encodePhotoKey(key: string): string {
-  if (typeof Buffer !== "undefined") {
-    // Node.js
+  if (typeof window === "undefined") {
+    // Node.js 서버
     return Buffer.from(key).toString("base64url");
   }
   // 브라우저
@@ -15,8 +15,8 @@ export function encodePhotoKey(key: string): string {
 }
 
 export function decodePhotoKey(encoded: string): string {
-  if (typeof Buffer !== "undefined") {
-    // Node.js
+  if (typeof window === "undefined") {
+    // Node.js 서버
     return Buffer.from(encoded, "base64url").toString("utf8");
   }
   // 브라우저
