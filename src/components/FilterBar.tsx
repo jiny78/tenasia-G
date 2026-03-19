@@ -399,14 +399,24 @@ function DateRangePill({
   onApply: (patch: Partial<Filters>) => void;
   onClear: () => void;
 }) {
+  const [localYear, setLocalYear] = useState(filters.year     || "");
   const [localFrom, setLocalFrom] = useState(filters.dateFrom || "");
   const [localTo,   setLocalTo]   = useState(filters.dateTo   || "");
 
   // 외부에서 필터가 초기화될 때 로컬 상태도 리셋
+  useEffect(() => { setLocalYear(filters.year     || ""); }, [filters.year]);
   useEffect(() => { setLocalFrom(filters.dateFrom || ""); }, [filters.dateFrom]);
   useEffect(() => { setLocalTo(filters.dateTo     || ""); }, [filters.dateTo]);
 
-  const canApply = localFrom || localTo;
+  const hasSelection = localYear || localFrom || localTo;
+
+  const handleApply = () => {
+    if (localYear) {
+      onApply({ year: localYear, dateFrom: "", dateTo: "" });
+    } else {
+      onApply({ year: "", dateFrom: localFrom, dateTo: localTo });
+    }
+  };
 
   return (
     <div className="relative shrink-0">
@@ -424,13 +434,13 @@ function DateRangePill({
       {activePill === "date" && (
         <DropPanel isDark={isDark} dropBg={dropBg} className="w-60">
           <div className="p-3 flex flex-col gap-3">
-            {/* Year chips — 즉시 적용 */}
+            {/* Year chips — 선택만, Apply로 확정 */}
             <div className="flex flex-wrap gap-1">
               {years.map((y) => (
                 <button key={y}
-                  onClick={() => onApply({ year: String(y), dateFrom: "", dateTo: "" })}
+                  onClick={() => { setLocalYear(String(y)); setLocalFrom(""); setLocalTo(""); }}
                   className={`px-2 py-0.5 text-[11px] rounded-full border transition-all ${
-                    filters.year === String(y)
+                    localYear === String(y)
                       ? (isDark ? "bg-white text-black border-white" : "bg-black text-white border-black")
                       : (isDark ? "border-white/15 text-white/50 hover:border-white/35" : "border-black/15 text-black/50 hover:border-black/35")
                   }`}>
@@ -439,13 +449,13 @@ function DateRangePill({
               ))}
             </div>
 
-            {/* From / To + Apply */}
-            <div className={`flex flex-col gap-2 pt-2 border-t border-inherit`}>
+            {/* From / To */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-inherit">
               <div className="flex items-center gap-2">
                 <span className={`text-[10px] uppercase tracking-widest w-8 shrink-0 ${subText}`}>From</span>
                 <select
                   value={localFrom}
-                  onChange={(e) => setLocalFrom(e.target.value)}
+                  onChange={(e) => { setLocalFrom(e.target.value); setLocalYear(""); }}
                   style={{ background: isDark ? "#1a1a1a" : "#fff" }}
                   className={`flex-1 text-xs border rounded px-2 py-1 focus:outline-none
                               ${isDark ? "border-white/15 text-white" : "border-black/15 text-black"}`}>
@@ -457,7 +467,7 @@ function DateRangePill({
                 <span className={`text-[10px] uppercase tracking-widest w-8 shrink-0 ${subText}`}>To</span>
                 <select
                   value={localTo}
-                  onChange={(e) => setLocalTo(e.target.value)}
+                  onChange={(e) => { setLocalTo(e.target.value); setLocalYear(""); }}
                   style={{ background: isDark ? "#1a1a1a" : "#fff" }}
                   className={`flex-1 text-xs border rounded px-2 py-1 focus:outline-none
                               ${isDark ? "border-white/15 text-white" : "border-black/15 text-black"}`}>
@@ -465,18 +475,22 @@ function DateRangePill({
                   {yearMonths.map((ym) => <option key={ym} value={ym}>{ym}</option>)}
                 </select>
               </div>
-              {canApply && (
-                <button
-                  onClick={() => onApply({ dateFrom: localFrom, dateTo: localTo, year: "" })}
-                  className={`w-full py-1.5 text-[11px] font-medium rounded transition-all
-                    ${isDark ? "bg-white text-black hover:bg-white/90" : "bg-black text-white hover:bg-black/80"}`}>
-                  Apply
-                </button>
-              )}
             </div>
 
+            {/* Apply 버튼 — 항상 표시 */}
+            <button
+              onClick={handleApply}
+              disabled={!hasSelection}
+              className={`w-full py-1.5 text-[11px] font-medium rounded transition-all
+                ${hasSelection
+                  ? (isDark ? "bg-white text-black hover:bg-white/90" : "bg-black text-white hover:bg-black/80")
+                  : (isDark ? "bg-white/10 text-white/30 cursor-not-allowed" : "bg-black/10 text-black/30 cursor-not-allowed")
+                }`}>
+              Apply
+            </button>
+
             {hasDate && (
-              <button onClick={onClear}
+              <button onClick={() => { setLocalYear(""); setLocalFrom(""); setLocalTo(""); onClear(); }}
                 className={`text-[11px] text-left ${subText} hover:${mainText} transition-colors`}>
                 ✕ Clear date
               </button>
