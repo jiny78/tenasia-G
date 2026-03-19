@@ -1,8 +1,9 @@
 import { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { S3Client, HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { createHash } from "crypto";
-import { getAllPhotos, cacheOrientation } from "@/lib/r2";
+import { getAllPhotos, cacheOrientation, getCachedOrientation } from "@/lib/r2";
 import { decodePhotoKey, encodePhotoKey } from "@/lib/photoKey";
 import PhotoDetailClient from "@/components/PhotoDetailClient";
 
@@ -34,29 +35,47 @@ export interface PhotoMeta {
 }
 
 // ── 데이터 조회 (서버사이드) ──────────────────────────────────
-async function getPhotoMeta(id: string): Promise<PhotoMeta | null> {
+// React.cache() — generateMetadata + page 컴포넌트가 각각 호출해도 1번만 실행됨
+const getPhotoMeta = cache(async (id: string): Promise<PhotoMeta | null> => {
   let key: string;
   try { key = decodePhotoKey(id); } catch { return null; }
 
   try {
-    const head     = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }));
+    const cachedOrientation = getCachedOrientation(key);
+
+    // HeadObject, getAllPhotos, (GetObject 조건부) 병렬 실행
+    const [head, allPhotos, rawBytes] = await Promise.all([
+      s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key })),
+      getAllPhotos(),
+      cachedOrientation
+        ? Promise.resolve(null)  // 오리엔테이션 캐시 있으면 S3 read 스킵
+        : s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key, Range: "bytes=0-65535" }))
+            .then(async (obj) => {
+              const chunks: Buffer[] = [];
+              for await (const chunk of obj.Body as AsyncIterable<Uint8Array>) chunks.push(Buffer.from(chunk));
+              return Buffer.concat(chunks);
+            })
+            .catch(() => null),
+    ]);
+
     const fileSize = head.ContentLength ?? 0;
 
     let width = 0, height = 0, format = "jpeg";
-    try {
-      const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key, Range: "bytes=0-65535" }));
-      const chunks: Buffer[] = [];
-      for await (const chunk of obj.Body as AsyncIterable<Uint8Array>) chunks.push(Buffer.from(chunk));
-      const sharp = (await import("sharp")).default;
-      const meta  = await sharp(Buffer.concat(chunks)).metadata();
-      width = meta.width ?? 0; height = meta.height ?? 0; format = meta.format ?? "jpeg";
-      cacheOrientation(key, width, height);
-    } catch { /* ignore */ }
+    if (rawBytes) {
+      try {
+        const sharp = (await import("sharp")).default;
+        const meta  = await sharp(rawBytes).metadata();
+        width = meta.width ?? 0; height = meta.height ?? 0; format = meta.format ?? "jpeg";
+        cacheOrientation(key, width, height);
+      } catch { /* ignore */ }
+    }
 
-    const allPhotos = await getAllPhotos();
-    const photo     = allPhotos.find((p) => p.id === key);
-    const year      = photo?.date?.slice(0, 4) ?? "0000";
-    const hash      = createHash("md5").update(key).digest("hex").slice(0, 4).toUpperCase();
+    const photo = allPhotos.find((p) => p.id === key);
+    const year  = photo?.date?.slice(0, 4) ?? "0000";
+    const hash  = createHash("md5").update(key).digest("hex").slice(0, 4).toUpperCase();
+
+    const orientation = cachedOrientation
+      ?? (width > height ? "landscape" : width < height ? "portrait" : "square");
 
     return {
       id,
@@ -67,12 +86,12 @@ async function getPhotoMeta(id: string): Promise<PhotoMeta | null> {
       date:        photo?.date   ?? null,
       resolution:  { width, height },
       fileSize,
-      orientation: width > height ? "landscape" : width < height ? "portrait" : "square",
+      orientation,
       photoId:     `TEN-${year}-${hash}`,
       format,
     };
   } catch { return null; }
-}
+});
 
 // ── generateMetadata ─────────────────────────────────────────
 export async function generateMetadata(
