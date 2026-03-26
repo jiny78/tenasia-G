@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       limit:       parseInt(p.get("limit") ?? "60"),
     });
     return NextResponse.json(result, {
-      headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
+      headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
     });
   } catch (e) {
     console.error("gallery error:", e);

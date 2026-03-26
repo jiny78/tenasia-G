@@ -106,7 +106,7 @@ async function listPrefix(prefix: string): Promise<Photo[]> {
 let _cache: Photo[] | null = null;
 let _cacheAt = 0;
 let _fetching: Promise<Photo[]> | null = null;
-const CACHE_TTL = 10 * 60 * 1000; // 10분
+const CACHE_TTL = 30 * 60 * 1000; // 30분
 
 export async function getAllPhotos(): Promise<Photo[]> {
   if (_cache && Date.now() - _cacheAt < CACHE_TTL) return _cache;

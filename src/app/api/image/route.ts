@@ -35,6 +35,8 @@ export async function GET(req: NextRequest) {
   const wParam = req.nextUrl.searchParams.get("w");
   const targetWidth = wParam ? Math.min(parseInt(wParam, 10), 2400) : null;
 
+  const acceptsWebP = req.headers.get("accept")?.includes("image/webp") ?? false;
+
   try {
     const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: decoded }));
     const chunks: Uint8Array[] = [];
@@ -43,15 +45,15 @@ export async function GET(req: NextRequest) {
 
     // 리사이징 요청인 경우 sharp로 처리
     if (targetWidth) {
-      const resized = await sharp(buffer)
-        .resize(targetWidth, undefined, { withoutEnlargement: true })
-        .jpeg({ quality: 82, progressive: true })
-        .toBuffer();
+      const img = sharp(buffer).resize(targetWidth, undefined, { withoutEnlargement: true });
+      const resized = acceptsWebP
+        ? await img.webp({ quality: 82 }).toBuffer()
+        : await img.jpeg({ quality: 82, progressive: true }).toBuffer();
 
       return new NextResponse(new Uint8Array(resized), {
         headers: {
-          "Content-Type": "image/jpeg",
-          "Cache-Control": "public, max-age=604800, immutable",
+          "Content-Type": acceptsWebP ? "image/webp" : "image/jpeg",
+          "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
           "X-Content-Type-Options": "nosniff",
           "X-Robots-Tag": "noindex, noarchive",
         },

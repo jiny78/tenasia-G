@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
       { persons, dates, events, agencies },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
         },
       }
     );
