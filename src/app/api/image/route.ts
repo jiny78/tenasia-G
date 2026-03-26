@@ -12,6 +12,14 @@ const s3 = new S3Client({
 });
 const BUCKET = process.env.R2_BUCKET ?? "";
 
+const CACHE_IMMUTABLE = "public, max-age=604800, s-maxage=604800, immutable";
+
+async function readStream(body: AsyncIterable<Uint8Array>): Promise<Buffer> {
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of body) chunks.push(chunk);
+  return Buffer.concat(chunks);
+}
+
 export async function GET(req: NextRequest) {
   const path = req.nextUrl.searchParams.get("path");
   if (!path) return new NextResponse("Missing path", { status: 400 });
@@ -27,24 +35,55 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Invalid path", { status: 400 });
   }
 
-  if (!BUCKET) {
-    return new NextResponse("Storage not configured", { status: 503 });
-  }
+  if (!BUCKET) return new NextResponse("Storage not configured", { status: 503 });
 
-  // w 파라미터: 썸네일 너비 (없으면 원본 반환)
   const wParam = req.nextUrl.searchParams.get("w");
   const targetWidth = wParam ? Math.min(parseInt(wParam, 10), 2400) : null;
-
   const acceptsWebP = req.headers.get("accept")?.includes("image/webp") ?? false;
 
-  try {
-    const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: decoded }));
-    const chunks: Uint8Array[] = [];
-    for await (const chunk of obj.Body as AsyncIterable<Uint8Array>) chunks.push(chunk);
-    const buffer = Buffer.concat(chunks);
+  const commonHeaders = {
+    "Vary": "Accept",
+    "X-Content-Type-Options": "nosniff",
+    "X-Robots-Tag": "noindex, noarchive",
+  };
 
-    // 리사이징 요청인 경우 sharp로 처리
+  try {
+    // ── 리사이즈 요청 ───────────────────────────────────────────
     if (targetWidth) {
+      // 1) 사전 생성된 썸네일 먼저 확인 (WebP, thumbs/{width}/{key})
+      const thumbKey = `thumbs/${targetWidth}/${decoded}`;
+      try {
+        const thumbObj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: thumbKey }));
+        const thumbBuffer = await readStream(thumbObj.Body as AsyncIterable<Uint8Array>);
+
+        if (acceptsWebP) {
+          // 썸네일이 WebP이므로 그대로 반환
+          return new NextResponse(new Uint8Array(thumbBuffer), {
+            headers: {
+              "Content-Type": "image/webp",
+              "Cache-Control": CACHE_IMMUTABLE,
+              ...commonHeaders,
+            },
+          });
+        } else {
+          // WebP 썸네일 → JPEG 변환 (원본 대비 수십배 빠름)
+          const jpeg = await sharp(thumbBuffer).jpeg({ quality: 75 }).toBuffer();
+          return new NextResponse(new Uint8Array(jpeg), {
+            headers: {
+              "Content-Type": "image/jpeg",
+              "Cache-Control": CACHE_IMMUTABLE,
+              ...commonHeaders,
+            },
+          });
+        }
+      } catch {
+        // 썸네일 없음 → on-demand 처리로 폴백
+      }
+
+      // 2) On-demand: 원본 다운로드 후 리사이징 (폴백)
+      const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: decoded }));
+      const buffer = await readStream(obj.Body as AsyncIterable<Uint8Array>);
+
       const img = sharp(buffer).resize(targetWidth, undefined, { withoutEnlargement: true });
       const resized = acceptsWebP
         ? await img.webp({ quality: 75 }).toBuffer()
@@ -53,21 +92,21 @@ export async function GET(req: NextRequest) {
       return new NextResponse(new Uint8Array(resized), {
         headers: {
           "Content-Type": acceptsWebP ? "image/webp" : "image/jpeg",
-          "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
-          "Vary": "Accept",
-          "X-Content-Type-Options": "nosniff",
-          "X-Robots-Tag": "noindex, noarchive",
+          "Cache-Control": CACHE_IMMUTABLE,
+          ...commonHeaders,
         },
       });
     }
 
-    const contentType = obj.ContentType ?? "image/jpeg";
+    // ── 원본 반환 ──────────────────────────────────────────────
+    const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: decoded }));
+    const buffer = await readStream(obj.Body as AsyncIterable<Uint8Array>);
+
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
-        "Content-Type": contentType,
+        "Content-Type": obj.ContentType ?? "image/jpeg",
         "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
-        "X-Content-Type-Options": "nosniff",
-        "X-Robots-Tag": "noindex, noarchive",
+        ...commonHeaders,
       },
     });
   } catch {
