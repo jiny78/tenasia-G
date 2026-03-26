@@ -47,13 +47,14 @@ export async function GET(req: NextRequest) {
     if (targetWidth) {
       const img = sharp(buffer).resize(targetWidth, undefined, { withoutEnlargement: true });
       const resized = acceptsWebP
-        ? await img.webp({ quality: 82 }).toBuffer()
-        : await img.jpeg({ quality: 82, progressive: true }).toBuffer();
+        ? await img.webp({ quality: 75 }).toBuffer()
+        : await img.jpeg({ quality: 75, progressive: true }).toBuffer();
 
       return new NextResponse(new Uint8Array(resized), {
         headers: {
           "Content-Type": acceptsWebP ? "image/webp" : "image/jpeg",
           "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
+          "Vary": "Accept",
           "X-Content-Type-Options": "nosniff",
           "X-Robots-Tag": "noindex, noarchive",
         },

@@ -192,7 +192,7 @@ function BookLayout({ photos, isDark, onOpen, onDownload, sectionOffset }: {
   const card = (p: Photo, i: number, aspect?: string) => (
     <PhotoCard key={p.id} photo={p} aspect={aspect} isDark={isDark}
       onClick={() => onOpen(i)} onDownload={() => onDownload(p)}
-      priority={sectionOffset + i < 4} />
+      priority={sectionOffset + i < 8} />
   );
 
   if (n === 1) return <div className="max-w-2xl mx-auto">{card(photos[0], 0, "aspect-[4/3]")}</div>;
@@ -207,7 +207,7 @@ function BookLayout({ photos, isDark, onOpen, onDownload, sectionOffset }: {
     <div className="grid grid-cols-2 gap-1.5">
       <PhotoCard photo={photos[0]} aspect="aspect-[3/4]" className="row-span-2"
         isDark={isDark} onClick={() => onOpen(0)} onDownload={() => onDownload(photos[0])}
-        priority={sectionOffset < 4} />
+        priority={sectionOffset < 8} />
       {photos.slice(1).map((p, i) => card(p, i + 1, "aspect-[3/4]"))}
     </div>
   );
@@ -220,7 +220,7 @@ function BookLayout({ photos, isDark, onOpen, onDownload, sectionOffset }: {
         <div className="w-[45%] shrink-0">
           <PhotoCard photo={photos[0]} aspect="aspect-[2/3]" isDark={isDark}
             onClick={() => onOpen(0)} onDownload={() => onDownload(photos[0])}
-            priority={sectionOffset < 4} />
+            priority={sectionOffset < 8} />
         </div>
         <div className="flex-1 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${rightCols}, 1fr)` }}>
           {rest.map((p, i) => card(p, i + 1, "aspect-[3/4]"))}
