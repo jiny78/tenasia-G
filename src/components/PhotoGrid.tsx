@@ -99,18 +99,12 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
       `/api/download?url=${encodeURIComponent(photo.url)}&token=${token}`
     );
     if (!dlRes.ok) {
-      alert(`다운로드 오류 (${dlRes.status}): ${await dlRes.text()}`);
+      const body = await dlRes.json().catch(() => ({ error: dlRes.statusText }));
+      alert(`다운로드 오류 (${dlRes.status}): ${body.error ?? dlRes.statusText}`);
       return;
     }
-    const blob = await dlRes.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = photoName ?? "tenasia-photo.jpg";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    const { url: presignedUrl } = await dlRes.json();
+    window.location.href = presignedUrl;
     onCreditsChange?.();
   }, [balance, spendAndGetToken, onCreditsChange]);
 

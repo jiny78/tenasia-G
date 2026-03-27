@@ -109,19 +109,12 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
       );
       console.log("[dl] step4 status=", dlRes.status);
       if (!dlRes.ok) {
-        const errText = await dlRes.text();
-        setDlError(`오류 ${dlRes.status}: ${errText}`);
+        const body = await dlRes.json().catch(() => ({ error: dlRes.statusText }));
+        setDlError(`오류 ${dlRes.status}: ${body.error ?? dlRes.statusText}`);
         return;
       }
-      const blob = await dlRes.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = photoName ?? "tenasia-photo.jpg";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      const { url: presignedUrl } = await dlRes.json();
+      window.location.href = presignedUrl;
       refresh();
     } catch (e) {
       console.error("[dl] exception:", e);

@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export const maxDuration = 60;
 
 const R2_BASE = process.env.R2_BASE ?? "";
+
+// presigned URL 생성용 — forcePathStyle 명시
+const s3 = new S3Client({
+  region: "auto",
+  endpoint: process.env.R2_ENDPOINT ?? "",
+  credentials: {
+    accessKeyId:     process.env.R2_ACCESS_KEY_ID     ?? "",
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
+  },
+  forcePathStyle: true,
+});
+const BUCKET = process.env.R2_BUCKET ?? "";
 
 function verifyToken(url: string, token: string): boolean {
   const secret = process.env.DOWNLOAD_SECRET;
@@ -24,49 +38,38 @@ export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
 
   if (!url || !token) {
-    return new NextResponse("Missing parameters", { status: 400 });
+    return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
   }
-
   if (!verifyToken(url, token)) {
-    return new NextResponse("Invalid or expired token", { status: 403 });
+    return NextResponse.json({ error: "Invalid or expired token" }, { status: 403 });
   }
-
   if (R2_BASE && !url.startsWith(R2_BASE)) {
-    return new NextResponse("Unauthorized", { status: 403 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
+  // URL에서 R2 key 추출 (공백/한글 그대로 유지 — SDK가 내부에서 인코딩)
   const key      = url.replace(R2_BASE.replace(/\/$/, "") + "/", "");
   const filename = key.split("/").pop()?.split("?")[0] ?? "tenasia-photo.jpg";
 
-  // S3 SDK 대신 R2 공개 CDN URL로 직접 fetch
-  // url에 한글/공백이 포함될 수 있으므로 encodeURI로 유효한 URL로 변환
-  const safeUrl = encodeURI(url);
-  console.log("[download] fetching:", safeUrl);
-  const r2Res = await fetch(safeUrl, {
-    signal: AbortSignal.timeout(55000),
-  }).catch((e: unknown) => {
+  console.log("[download] key:", JSON.stringify(key));
+
+  try {
+    const presignedUrl = await getSignedUrl(
+      s3,
+      new GetObjectCommand({
+        Bucket: BUCKET,
+        Key:    key,
+        ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+        ResponseContentType: "application/octet-stream",
+      }),
+      { expiresIn: 300 },
+    );
+
+    console.log("[download] presigned ok, host:", new URL(presignedUrl).host);
+    return NextResponse.json({ url: presignedUrl });
+  } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[download] fetch error:", msg);
-    return null;
-  });
-
-  if (!r2Res) {
-    return new NextResponse("Fetch to R2 failed (network)", { status: 500 });
+    console.error("[download] presign error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
-  if (!r2Res.ok) {
-    console.error("[download] R2 responded:", r2Res.status, "url:", url);
-    return new NextResponse(`R2 error: ${r2Res.status}`, { status: r2Res.status });
-  }
-
-  const buffer = await r2Res.arrayBuffer();
-
-  return new NextResponse(buffer, {
-    headers: {
-      "Content-Type":        r2Res.headers.get("content-type") ?? "image/jpeg",
-      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
-      "Content-Length":      String(buffer.byteLength),
-      "Cache-Control":       "no-store",
-      "X-Robots-Tag":        "noindex",
-    },
-  });
 }
