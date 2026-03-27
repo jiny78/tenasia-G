@@ -65,6 +65,7 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
   const [downloading,  setDownloading]  = useState(false);
   const [showPurchase, setShowPurchase] = useState(false);
   const [imgLoaded,    setImgLoaded]    = useState(false);
+  const [dlError,      setDlError]      = useState<string | null>(null);
 
   /* ── keyboard nav ──────────────────────────────────────── */
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
 
   /* ── download handler ──────────────────────────────────── */
   const handleDownload = useCallback(async () => {
+    setDlError(null);
     if (license === "extended") {
       window.location.href = "mailto:tenasia.trend@gmail.com?subject=Extended%20License%20Inquiry";
       return;
@@ -94,16 +96,21 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
     setDownloading(true);
     try {
       const photoName = data.key.split("/").pop() ?? undefined;
+      console.log("[dl] step1 token request");
       const token = await spendAndGetToken(
         data.key, data.url, photoName, license, creditsNeeded
       );
+      console.log("[dl] step2 token=", token ? "ok" : "null");
       if (!token) { setShowPurchase(true); return; }
 
+      console.log("[dl] step3 fetching /api/download");
       const dlRes = await fetch(
         `/api/download?url=${encodeURIComponent(data.url)}&token=${token}`
       );
+      console.log("[dl] step4 status=", dlRes.status);
       if (!dlRes.ok) {
-        alert(`다운로드 오류 (${dlRes.status}): ${await dlRes.text()}`);
+        const errText = await dlRes.text();
+        setDlError(`오류 ${dlRes.status}: ${errText}`);
         return;
       }
       const blob = await dlRes.blob();
@@ -116,6 +123,9 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
       refresh();
+    } catch (e) {
+      console.error("[dl] exception:", e);
+      setDlError(e instanceof Error ? e.message : String(e));
     } finally {
       setDownloading(false);
     }
@@ -364,6 +374,11 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
               <p className={`text-[11px] ${subText}`}>
                 {balance} cr remaining
               </p>
+            )}
+
+            {/* 다운로드 오류 표시 */}
+            {dlError && (
+              <p className="text-red-400 text-xs break-all">{dlError}</p>
             )}
 
             {/* 다운로드 버튼 */}
