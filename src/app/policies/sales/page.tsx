@@ -62,7 +62,7 @@ export default function SalesPage() {
         <ul className="list-disc pl-5 space-y-1">
           <li>
             <strong>Credit / Debit Cards:</strong> Visa, Mastercard, American Express,
-            and other major cards via Stripe
+            and other major cards via Polar
           </li>
           <li><strong>Digital Wallets:</strong> Apple Pay, Google Pay</li>
           <li>
@@ -74,9 +74,10 @@ export default function SalesPage() {
           </li>
         </ul>
         <p className="mt-3">
-          Payment processing is handled by Stripe, a PCI DSS Level 1 certified payment
-          processor. Tenasia Gallery does not store, transmit, or have access to your full
-          card number. All transactions are encrypted via TLS.
+          Payment processing is handled by Polar (polar.sh), a secure payment platform
+          that acts as Merchant of Record for all transactions. Tenasia Gallery does not
+          store, transmit, or have access to your full card number. All transactions are
+          encrypted via TLS.
         </p>
       </PolicySection>
 
@@ -87,7 +88,7 @@ export default function SalesPage() {
         <ol className="list-decimal pl-5 space-y-1">
           <li>
             Purchase a credit pack — credits are added to your account immediately upon
-            successful payment confirmation via Stripe
+            successful payment confirmation via Polar
           </li>
           <li>
             Use credits to download photos — each image download deducts the designated
@@ -154,10 +155,15 @@ export default function SalesPage() {
 
       <PolicySection id="taxes" title="Taxes">
         <p>
-          Listed prices do not include applicable sales tax, VAT, GST, or other taxes.
-          Tax obligations vary by jurisdiction and are the sole responsibility of the
-          purchaser. Where required by law, TenAsia may collect and remit applicable taxes
-          on your behalf, which will be reflected at checkout.
+          All applicable sales tax, VAT, GST, and other taxes are automatically calculated
+          and collected at checkout by Polar, which acts as the Merchant of Record for all
+          transactions. Polar is responsible for remitting collected taxes to the relevant
+          tax authorities in each applicable jurisdiction.
+        </p>
+        <p className="mt-3">
+          The final tax amount, if any, will be displayed during checkout prior to payment
+          confirmation. Prices shown on this site are exclusive of tax unless otherwise
+          stated.
         </p>
       </PolicySection>
 
