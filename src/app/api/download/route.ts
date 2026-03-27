@@ -39,9 +39,10 @@ export async function GET(req: NextRequest) {
   const filename = key.split("/").pop()?.split("?")[0] ?? "tenasia-photo.jpg";
 
   // S3 SDK 대신 R2 공개 CDN URL로 직접 fetch
-  // 이미지가 브라우저에서 로드되므로 공개 접근 가능
-  console.log("[download] fetching:", url);
-  const r2Res = await fetch(url, {
+  // url에 한글/공백이 포함될 수 있으므로 encodeURI로 유효한 URL로 변환
+  const safeUrl = encodeURI(url);
+  console.log("[download] fetching:", safeUrl);
+  const r2Res = await fetch(safeUrl, {
     signal: AbortSignal.timeout(55000),
   }).catch((e: unknown) => {
     const msg = e instanceof Error ? e.message : String(e);
