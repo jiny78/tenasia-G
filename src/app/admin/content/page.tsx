@@ -1,5 +1,6 @@
 import { getAllPhotos } from "@/lib/r2";
 import agencyData from "@/data/artist-agency.json";
+import ThumbStatus from "./ThumbStatus";
 
 export default async function ContentPage() {
   const photos = await getAllPhotos();
@@ -41,6 +42,9 @@ export default async function ContentPage() {
           </div>
         ))}
       </div>
+
+      {/* 썸네일 현황 */}
+      <ThumbStatus />
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* 최근 업로드 */}

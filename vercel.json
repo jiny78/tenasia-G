@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/generate-thumbs",
+      "schedule": "0 */2 * * *"
+    }
+  ]
+}
