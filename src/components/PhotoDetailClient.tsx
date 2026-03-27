@@ -99,8 +99,22 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
       );
       if (!token) { setShowPurchase(true); return; }
 
-      window.location.href =
-        `/api/download?url=${encodeURIComponent(data.url)}&token=${token}`;
+      const dlRes = await fetch(
+        `/api/download?url=${encodeURIComponent(data.url)}&token=${token}`
+      );
+      if (!dlRes.ok) {
+        alert(`다운로드 오류 (${dlRes.status}): ${await dlRes.text()}`);
+        return;
+      }
+      const blob = await dlRes.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = photoName ?? "tenasia-photo.jpg";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
       refresh();
     } finally {
       setDownloading(false);

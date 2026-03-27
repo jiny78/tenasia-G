@@ -80,7 +80,8 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (e) {
-    console.error("Download error:", e);
-    return new NextResponse("Download failed", { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Download error:", msg);
+    return new NextResponse(`Download failed: ${msg}`, { status: 500 });
   }
 }
