@@ -115,7 +115,7 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(objectUrl);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
       refresh();
     } finally {
       setDownloading(false);

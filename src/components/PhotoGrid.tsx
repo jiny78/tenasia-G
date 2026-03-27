@@ -111,7 +111,7 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(objectUrl);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
     onCreditsChange?.();
   }, [balance, spendAndGetToken, onCreditsChange]);
 
