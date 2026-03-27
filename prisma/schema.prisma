@@ -46,25 +46,26 @@ model VerificationToken {
 // ── 사용자 ──────────────────────────────────────────────────────
 
 model User {
-  id              String    @id @default(cuid())
-  name            String?
-  email           String?   @unique
-  emailVerified   DateTime?
-  image           String?
-  password        String?
-  company         String?
-  jobTitle        String?
-  country         String?
-  pressVerified   Boolean   @default(false)
-  pressDiscount   Int       @default(0)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  accounts        Account[]
-  sessions        Session[]
-  credits         Credit?
-  purchases       Purchase[]
-  downloads       Download[]
-  mediaCredential MediaCredential?
+  id               String    @id @default(cuid())
+  name             String?
+  email            String?   @unique
+  emailVerified    DateTime?
+  image            String?
+  password         String?
+  company          String?
+  jobTitle         String?
+  country          String?
+  pressVerified    Boolean   @default(false)
+  pressDiscount    Int       @default(0)
+  polarCustomerId  String?   @unique   // Polar 고객 ID
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  accounts         Account[]
+  sessions         Session[]
+  credits          Credit?
+  purchases        Purchase[]
+  downloads        Download[]
+  mediaCredential  MediaCredential?
 }
 
 // ── 크레딧 ──────────────────────────────────────────────────────
@@ -80,29 +81,37 @@ model Credit {
 // ── 구매 이력 ──────────────────────────────────────────────────
 
 model Purchase {
-  id              String   @id @default(cuid())
+  id              String     @id @default(cuid())
   userId          String
-  stripeSessionId String   @unique
+  stripeSessionId String     @unique          // Polar: "polar_{orderId}" 형식으로 저장
+  polarProductId  String?                     // Polar 상품 ID
+  orderType       String     @default("credit_pack")  // "credit_pack" | "single_photo"
+  photoId         String?                     // 단건 구매 시 사진 R2 key
   amount          Int
-  currency        String   @default("usd")
+  currency        String     @default("usd")
   creditsAdded    Int
-  status          String   @default("completed")
-  createdAt       DateTime @default(now())
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          String     @default("completed")
+  createdAt       DateTime   @default(now())
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  downloads       Download[]
+
+  @@index([userId])
 }
 
 // ── 다운로드 이력 ──────────────────────────────────────────────
 
 model Download {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
   photoId     String
   photoName   String?
-  licenseType String   @default("editorial")
-  creditsUsed Int      @default(1)
+  licenseType String    @default("editorial")  // "editorial" | "commercial" | "single"
+  creditsUsed Int       @default(1)
+  purchaseId  String?                           // Polar 단건 구매 연결 (nullable)
   expiresAt   DateTime
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchase    Purchase? @relation(fields: [purchaseId], references: [id])
 
   @@index([userId])
   @@index([photoId])

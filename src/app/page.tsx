@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import PhotoGrid from "@/components/PhotoGrid";
 import FilterBar from "@/components/FilterBar";
+import CreditBadge from "@/components/CreditBadge";
 import { Photo, Person, DateEntry, GalleryEvent } from "@/types";
 import { useCredits } from "@/lib/credits";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
@@ -129,7 +130,7 @@ export default function Home() {
   const [filters,   setFilters]   = useState<Filters>(EMPTY);
   const [theme,     setTheme]     = useState<ThemeKey>("black");
 
-  const { balance: credits, refresh: refreshCredits } = useCredits();
+  const { refresh: refreshCredits } = useCredits();
 
   useEffect(() => {
     const saved = localStorage.getItem("tg-theme") as ThemeKey | null;
@@ -265,11 +266,7 @@ export default function Home() {
 
           {/* 우측: 크레딧 + 테마 + 언어 + 유저 */}
           <div className="flex items-center gap-3 shrink-0 mt-1">
-            {credits > 0 && (
-              <span className="text-xs tabular-nums text-white bg-white/15 px-2 py-0.5 rounded-full">
-                ↓ {credits}
-              </span>
-            )}
+            <CreditBadge theme={theme} />
 
             {/* 언어 토글 */}
             <div className={`flex items-center text-[11px] font-medium border rounded-full overflow-hidden ${t.border}`}>
