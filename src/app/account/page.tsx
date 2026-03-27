@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import CreditPurchase from "@/components/CreditPurchase";
 
 export default async function AccountPage() {
   const session = await getServerSession(authOptions);
@@ -30,20 +31,18 @@ export default async function AccountPage() {
       {/* 크레딧 카드 */}
       <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-6">
         <p className="text-white/40 text-xs tracking-wide uppercase mb-1">Credit Balance</p>
-        <p className="text-white text-4xl font-bold tabular-nums mb-4">{balance}</p>
-        <a
-          href="/"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-black
-                     text-sm font-semibold hover:bg-white/90 transition-colors"
-        >
-          Buy Credits
-        </a>
-        {session.user.pressVerified && (
-          <span className="ml-3 text-xs text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
-            Press Verified {session.user.pressDiscount > 0 ? `· ${session.user.pressDiscount}% off` : ""}
-          </span>
-        )}
+        <div className="flex items-center gap-3 mb-4">
+          <p className="text-white text-4xl font-bold tabular-nums">{balance}</p>
+          {session.user.pressVerified && (
+            <span className="text-xs text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
+              Press Verified {session.user.pressDiscount > 0 ? `· ${session.user.pressDiscount}% off` : ""}
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* 크레딧 구매 */}
+      <CreditPurchase theme="charcoal" />
 
       {/* 최근 구매 */}
       <div>

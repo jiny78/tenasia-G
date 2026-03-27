@@ -4,7 +4,7 @@ import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import Image from "next/image";
 import { Photo } from "@/types";
 import Lightbox from "@/components/Lightbox";
-import PurchaseModal from "@/components/PurchaseModal";
+import InsufficientCreditsModal from "@/components/InsufficientCreditsModal";
 import { ThemeKey } from "@/app/page";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
 import { useCredits } from "@/lib/credits";
@@ -61,9 +61,9 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
   const tr = TRANSLATIONS[lang];
   const sentinel = useRef<HTMLDivElement>(null);
   const [lbIndex, setLbIndex] = useState<number | null>(null);
-  const [showPurchase, setShowPurchase] = useState(false);
+  const [insufficientState, setInsufficientState] = useState<{ photo: Photo; required: number; balance: number } | null>(null);
   const isDark = theme === "black" || theme === "charcoal";
-  const { balance, spendAndGetToken } = useCredits();
+  const { balance } = useCredits();
 
   useEffect(() => {
     const el = sentinel.current;
@@ -86,27 +86,26 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
 
   const handleDownload = useCallback(async (photo: Photo) => {
     if (balance <= 0) {
-      setShowPurchase(true);
+      setInsufficientState({ photo, required: 1, balance });
       return;
     }
-    const photoName = photo.id.split("/").pop() ?? undefined;
-    const token = await spendAndGetToken(photo.id, photo.url, photoName);
-    if (!token) {
-      setShowPurchase(true);
+    const res  = await fetch("/api/photos/download", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ photoId: photo.id, licenseType: "editorial", resolution: "web" }),
+    });
+    const body = await res.json();
+    if (res.status === 402) {
+      setInsufficientState({ photo, required: body.required, balance: body.balance });
       return;
     }
-    const dlRes = await fetch(
-      `/api/download?url=${encodeURIComponent(photo.url)}&token=${token}`
-    );
-    if (!dlRes.ok) {
-      const body = await dlRes.json().catch(() => ({ error: dlRes.statusText }));
-      alert(`다운로드 오류 (${dlRes.status}): ${body.error ?? dlRes.statusText}`);
+    if (!res.ok) {
+      alert(`다운로드 오류 (${res.status}): ${body.error ?? res.statusText}`);
       return;
     }
-    const { url: presignedUrl } = await dlRes.json();
-    window.location.href = presignedUrl;
+    window.location.href = body.downloadUrl;
     onCreditsChange?.();
-  }, [balance, spendAndGetToken, onCreditsChange]);
+  }, [balance, onCreditsChange]);
 
   if (!loading && photos.length === 0) {
     return (
@@ -147,7 +146,16 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
         )}
       </div>
 
-      {showPurchase && <PurchaseModal onClose={() => setShowPurchase(false)} />}
+      {insufficientState && (
+        <InsufficientCreditsModal
+          photoId={insufficientState.photo.id}
+          licenseType="editorial"
+          creditsRequired={insufficientState.required}
+          currentBalance={insufficientState.balance}
+          theme={theme}
+          onClose={() => setInsufficientState(null)}
+        />
+      )}
     </>
   );
 }

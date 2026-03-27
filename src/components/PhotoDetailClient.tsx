@@ -9,7 +9,7 @@ import { useLang, TRANSLATIONS } from "@/lib/i18n";
 import { useCredits } from "@/lib/credits";
 import { THEMES, ThemeKey } from "@/lib/themes";
 import { encodePhotoKey } from "@/lib/photoKey";
-import PurchaseModal from "@/components/PurchaseModal";
+import InsufficientCreditsModal from "@/components/InsufficientCreditsModal";
 import type { PhotoMeta } from "@/app/photo/[id]/page";
 
 /* ─── TENASIA 워터마크 ──────────────────────────────────────── */
@@ -46,7 +46,7 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
   const tr                  = TRANSLATIONS[lang];
   const router              = useRouter();
   const { data: session }   = useSession();
-  const { balance, loading: credLoading, refresh, spendAndGetToken } = useCredits();
+  const { balance, loading: credLoading, refresh } = useCredits();
 
   /* ── theme ─────────────────────────────────────────────── */
   const [theme, setTheme] = useState<ThemeKey>("black");
@@ -62,10 +62,10 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
   const creditsNeeded = license === "editorial" ? 1 : license === "commercial" ? 3 : 0;
 
   /* ── download state ────────────────────────────────────── */
-  const [downloading,  setDownloading]  = useState(false);
-  const [showPurchase, setShowPurchase] = useState(false);
-  const [imgLoaded,    setImgLoaded]    = useState(false);
-  const [dlError,      setDlError]      = useState<string | null>(null);
+  const [downloading,      setDownloading]      = useState(false);
+  const [insufficientState, setInsufficientState] = useState<{ required: number; balance: number } | null>(null);
+  const [imgLoaded,        setImgLoaded]        = useState(false);
+  const [dlError,          setDlError]          = useState<string | null>(null);
 
   /* ── keyboard nav ──────────────────────────────────────── */
   useEffect(() => {
@@ -90,39 +90,33 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
       return;
     }
     if (balance < creditsNeeded) {
-      setShowPurchase(true);
+      setInsufficientState({ required: creditsNeeded, balance });
       return;
     }
     setDownloading(true);
     try {
-      const photoName = data.key.split("/").pop() ?? undefined;
-      console.log("[dl] step1 token request");
-      const token = await spendAndGetToken(
-        data.key, data.url, photoName, license, creditsNeeded
-      );
-      console.log("[dl] step2 token=", token ? "ok" : "null");
-      if (!token) { setShowPurchase(true); return; }
-
-      console.log("[dl] step3 fetching /api/download");
-      const dlRes = await fetch(
-        `/api/download?url=${encodeURIComponent(data.url)}&token=${token}`
-      );
-      console.log("[dl] step4 status=", dlRes.status);
-      if (!dlRes.ok) {
-        const body = await dlRes.json().catch(() => ({ error: dlRes.statusText }));
-        setDlError(`오류 ${dlRes.status}: ${body.error ?? dlRes.statusText}`);
+      const res  = await fetch("/api/photos/download", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ photoId: data.key, licenseType: license, resolution: "web" }),
+      });
+      const body = await res.json();
+      if (res.status === 402) {
+        setInsufficientState({ required: body.required, balance: body.balance });
         return;
       }
-      const { url: presignedUrl } = await dlRes.json();
-      window.location.href = presignedUrl;
+      if (!res.ok) {
+        setDlError(`오류 ${res.status}: ${body.error ?? res.statusText}`);
+        return;
+      }
+      window.location.href = body.downloadUrl;
       refresh();
     } catch (e) {
-      console.error("[dl] exception:", e);
       setDlError(e instanceof Error ? e.message : String(e));
     } finally {
       setDownloading(false);
     }
-  }, [license, session, balance, creditsNeeded, data, spendAndGetToken, refresh, router]);
+  }, [license, session, balance, creditsNeeded, data.key, refresh, router]);
 
   /* ── orientation label ─────────────────────────────────── */
   const orientLabel =
@@ -429,7 +423,16 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
         )}
       </div>
 
-      {showPurchase && <PurchaseModal onClose={() => setShowPurchase(false)} />}
+      {insufficientState && (
+        <InsufficientCreditsModal
+          photoId={data.key}
+          licenseType={license}
+          creditsRequired={insufficientState.required}
+          currentBalance={insufficientState.balance}
+          theme={theme}
+          onClose={() => setInsufficientState(null)}
+        />
+      )}
     </div>
   );
 }
