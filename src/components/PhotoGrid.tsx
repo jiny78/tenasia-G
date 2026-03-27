@@ -95,16 +95,8 @@ export default function PhotoGrid({ photos, loading, hasMore, onLoadMore, theme,
       setShowPurchase(true);
       return;
     }
-    const res = await fetch(
-      `/api/download?url=${encodeURIComponent(photo.url)}&token=${token}`
-    );
-    if (!res.ok) {
-      const msg = await res.text().catch(() => String(res.status));
-      alert(`다운로드 실패: ${res.status} — ${msg}`);
-      return;
-    }
-    const { url: downloadUrl } = await res.json();
-    window.location.href = downloadUrl;
+    window.location.href =
+      `/api/download?url=${encodeURIComponent(photo.url)}&token=${token}`;
     onCreditsChange?.();
   }, [balance, spendAndGetToken, onCreditsChange]);
 

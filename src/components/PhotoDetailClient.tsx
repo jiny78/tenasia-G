@@ -99,16 +99,8 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
       );
       if (!token) { setShowPurchase(true); return; }
 
-      const res = await fetch(
-        `/api/download?url=${encodeURIComponent(data.url)}&token=${token}`
-      );
-      if (!res.ok) {
-        const msg = await res.text().catch(() => String(res.status));
-        alert(`다운로드 실패: ${res.status} — ${msg}`);
-        return;
-      }
-      const { url: downloadUrl } = await res.json();
-      window.location.href = downloadUrl;
+      window.location.href =
+        `/api/download?url=${encodeURIComponent(data.url)}&token=${token}`;
       refresh();
     } finally {
       setDownloading(false);

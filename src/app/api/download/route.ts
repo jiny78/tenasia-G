@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const R2_BASE = process.env.R2_BASE ?? "";
 
@@ -50,18 +49,36 @@ export async function GET(req: NextRequest) {
     const key      = url.replace(R2_BASE.replace(/\/$/, "") + "/", "");
     const filename = key.split("/").pop()?.split("?")[0] ?? "tenasia-photo.jpg";
 
-    // R2 Presigned URL 생성 (5분 유효)
-    const presignedUrl = await getSignedUrl(
-      s3,
-      new GetObjectCommand({
-        Bucket: BUCKET,
-        Key:    key,
-        ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
-      }),
-      { expiresIn: 300 },
-    );
+    const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
 
-    return NextResponse.json({ url: presignedUrl, filename });
+    if (!obj.Body) {
+      return new NextResponse("Empty file", { status: 500 });
+    }
+
+    // R2 → Vercel → 브라우저 스트리밍 (메모리 버퍼링 없음)
+    const nodeStream = obj.Body as AsyncIterable<Uint8Array>;
+    const webStream  = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of nodeStream) {
+            controller.enqueue(chunk);
+          }
+          controller.close();
+        } catch (e) {
+          controller.error(e);
+        }
+      },
+    });
+
+    return new NextResponse(webStream, {
+      headers: {
+        "Content-Type":        obj.ContentType ?? "image/jpeg",
+        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+        "Content-Length":      String(obj.ContentLength ?? ""),
+        "Cache-Control":       "no-store",
+        "X-Robots-Tag":        "noindex",
+      },
+    });
   } catch (e) {
     console.error("Download error:", e);
     return new NextResponse("Download failed", { status: 500 });
