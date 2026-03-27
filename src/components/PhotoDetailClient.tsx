@@ -99,12 +99,16 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
       );
       if (!token) { setShowPurchase(true); return; }
 
-      const a = document.createElement("a");
-      a.href     = `/api/download?url=${encodeURIComponent(data.url)}&token=${token}`;
-      a.download = photoName ?? "tenasia-photo.jpg";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const res = await fetch(
+        `/api/download?url=${encodeURIComponent(data.url)}&token=${token}`
+      );
+      if (!res.ok) {
+        const msg = await res.text().catch(() => String(res.status));
+        alert(`다운로드 실패: ${res.status} — ${msg}`);
+        return;
+      }
+      const { url: downloadUrl } = await res.json();
+      window.location.href = downloadUrl;
       refresh();
     } finally {
       setDownloading(false);

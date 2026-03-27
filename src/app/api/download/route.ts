@@ -50,8 +50,7 @@ export async function GET(req: NextRequest) {
     const key      = url.replace(R2_BASE.replace(/\/$/, "") + "/", "");
     const filename = key.split("/").pop()?.split("?")[0] ?? "tenasia-photo.jpg";
 
-    // R2 Presigned URL 생성 (5분 유효) — Vercel 함수에서 파일을 버퍼링하지 않고
-    // 브라우저가 R2에서 직접 다운로드하므로 타임아웃 없음
+    // R2 Presigned URL 생성 (5분 유효)
     const presignedUrl = await getSignedUrl(
       s3,
       new GetObjectCommand({
@@ -62,7 +61,7 @@ export async function GET(req: NextRequest) {
       { expiresIn: 300 },
     );
 
-    return NextResponse.redirect(presignedUrl, { status: 302 });
+    return NextResponse.json({ url: presignedUrl, filename });
   } catch (e) {
     console.error("Download error:", e);
     return new NextResponse("Download failed", { status: 500 });
