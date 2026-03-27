@@ -1,25 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
-export const maxDuration = 60; // Vercel Pro: 60s, Hobby: 10s
+export const maxDuration = 60;
 
 const R2_BASE = process.env.R2_BASE ?? "";
-
-const s3 = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_ENDPOINT ?? "",
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
-  },
-});
-const BUCKET = process.env.R2_BUCKET ?? "";
 
 function verifyToken(url: string, token: string): boolean {
   const secret = process.env.DOWNLOAD_SECRET;
   if (!secret) return false;
-
   const now = Math.floor(Date.now() / 30000);
   for (const w of [now, now - 1]) {
     const expected = createHmac("sha256", secret)
@@ -50,29 +38,34 @@ export async function GET(req: NextRequest) {
   const key      = url.replace(R2_BASE.replace(/\/$/, "") + "/", "");
   const filename = key.split("/").pop()?.split("?")[0] ?? "tenasia-photo.jpg";
 
-  console.log("[download] key:", JSON.stringify(key), "bucket:", BUCKET);
-
-  try {
-    const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
-
-    const chunks: Uint8Array[] = [];
-    for await (const chunk of obj.Body as AsyncIterable<Uint8Array>) {
-      chunks.push(chunk);
-    }
-    const buffer = Buffer.concat(chunks);
-
-    return new NextResponse(buffer, {
-      headers: {
-        "Content-Type":        obj.ContentType ?? "image/jpeg",
-        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
-        "Content-Length":      String(buffer.byteLength),
-        "Cache-Control":       "no-store",
-        "X-Robots-Tag":        "noindex",
-      },
-    });
-  } catch (e) {
+  // S3 SDK 대신 R2 공개 CDN URL로 직접 fetch
+  // 이미지가 브라우저에서 로드되므로 공개 접근 가능
+  console.log("[download] fetching:", url);
+  const r2Res = await fetch(url, {
+    signal: AbortSignal.timeout(55000),
+  }).catch((e: unknown) => {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[download] error:", msg, "key:", JSON.stringify(key), "bucket:", BUCKET);
-    return new NextResponse(`Download failed: ${msg} (key: ${key})`, { status: 500 });
+    console.error("[download] fetch error:", msg);
+    return null;
+  });
+
+  if (!r2Res) {
+    return new NextResponse("Fetch to R2 failed (network)", { status: 500 });
   }
+  if (!r2Res.ok) {
+    console.error("[download] R2 responded:", r2Res.status, "url:", url);
+    return new NextResponse(`R2 error: ${r2Res.status}`, { status: r2Res.status });
+  }
+
+  const buffer = await r2Res.arrayBuffer();
+
+  return new NextResponse(buffer, {
+    headers: {
+      "Content-Type":        r2Res.headers.get("content-type") ?? "image/jpeg",
+      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      "Content-Length":      String(buffer.byteLength),
+      "Cache-Control":       "no-store",
+      "X-Robots-Tag":        "noindex",
+    },
+  });
 }
