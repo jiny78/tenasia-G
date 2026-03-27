@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const R2_BASE = process.env.R2_BASE ?? "";
 
@@ -19,7 +20,6 @@ function verifyToken(url: string, token: string): boolean {
   if (!secret) return false;
 
   const now = Math.floor(Date.now() / 30000);
-  // 현재 윈도우와 직전 윈도우 허용 (최대 60초)
   for (const w of [now, now - 1]) {
     const expected = createHmac("sha256", secret)
       .update(`${url}:${w}`)
@@ -31,42 +31,40 @@ function verifyToken(url: string, token: string): boolean {
 }
 
 export async function GET(req: NextRequest) {
-  const url = req.nextUrl.searchParams.get("url");
+  const url   = req.nextUrl.searchParams.get("url");
   const token = req.nextUrl.searchParams.get("token");
 
   if (!url || !token) {
     return new NextResponse("Missing parameters", { status: 400 });
   }
 
-  // HMAC 토큰 검증
   if (!verifyToken(url, token)) {
     return new NextResponse("Invalid or expired token", { status: 403 });
   }
 
-  // R2 도메인 검증 (토큰 검증 후 추가 안전장치)
   if (R2_BASE && !url.startsWith(R2_BASE)) {
     return new NextResponse("Unauthorized", { status: 403 });
   }
 
   try {
-    // R2_BASE prefix를 제거해 S3 key 추출
-    const key = url.replace(R2_BASE.replace(/\/$/, "") + "/", "");
-    const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
-    const chunks: Uint8Array[] = [];
-    for await (const chunk of obj.Body as AsyncIterable<Uint8Array>) chunks.push(chunk);
-    const buffer = Buffer.concat(chunks);
-    const contentType = obj.ContentType ?? "image/jpeg";
+    const key      = url.replace(R2_BASE.replace(/\/$/, "") + "/", "");
     const filename = key.split("/").pop()?.split("?")[0] ?? "tenasia-photo.jpg";
 
-    return new NextResponse(buffer, {
-      headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${filename}"`,
-        "Cache-Control": "no-store",
-        "X-Robots-Tag": "noindex",
-      },
-    });
-  } catch {
+    // R2 Presigned URL 생성 (5분 유효) — Vercel 함수에서 파일을 버퍼링하지 않고
+    // 브라우저가 R2에서 직접 다운로드하므로 타임아웃 없음
+    const presignedUrl = await getSignedUrl(
+      s3,
+      new GetObjectCommand({
+        Bucket: BUCKET,
+        Key:    key,
+        ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      }),
+      { expiresIn: 300 },
+    );
+
+    return NextResponse.redirect(presignedUrl, { status: 302 });
+  } catch (e) {
+    console.error("Download error:", e);
     return new NextResponse("Download failed", { status: 500 });
   }
 }
