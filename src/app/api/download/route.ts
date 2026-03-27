@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 
+export const maxDuration = 60; // Vercel Pro: 60s, Hobby: 10s
+
 const R2_BASE = process.env.R2_BASE ?? "";
 
 const s3 = new S3Client({
@@ -45,43 +47,32 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Unauthorized", { status: 403 });
   }
 
-  try {
-    const key      = url.replace(R2_BASE.replace(/\/$/, "") + "/", "");
-    const filename = key.split("/").pop()?.split("?")[0] ?? "tenasia-photo.jpg";
+  const key      = url.replace(R2_BASE.replace(/\/$/, "") + "/", "");
+  const filename = key.split("/").pop()?.split("?")[0] ?? "tenasia-photo.jpg";
 
+  console.log("[download] key:", JSON.stringify(key), "bucket:", BUCKET);
+
+  try {
     const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
 
-    if (!obj.Body) {
-      return new NextResponse("Empty file", { status: 500 });
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of obj.Body as AsyncIterable<Uint8Array>) {
+      chunks.push(chunk);
     }
+    const buffer = Buffer.concat(chunks);
 
-    // R2 → Vercel → 브라우저 스트리밍 (메모리 버퍼링 없음)
-    const nodeStream = obj.Body as AsyncIterable<Uint8Array>;
-    const webStream  = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of nodeStream) {
-            controller.enqueue(chunk);
-          }
-          controller.close();
-        } catch (e) {
-          controller.error(e);
-        }
-      },
-    });
-
-    return new NextResponse(webStream, {
+    return new NextResponse(buffer, {
       headers: {
         "Content-Type":        obj.ContentType ?? "image/jpeg",
         "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
-        "Content-Length":      String(obj.ContentLength ?? ""),
+        "Content-Length":      String(buffer.byteLength),
         "Cache-Control":       "no-store",
         "X-Robots-Tag":        "noindex",
       },
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("Download error:", msg);
-    return new NextResponse(`Download failed: ${msg}`, { status: 500 });
+    console.error("[download] error:", msg, "key:", JSON.stringify(key), "bucket:", BUCKET);
+    return new NextResponse(`Download failed: ${msg} (key: ${key})`, { status: 500 });
   }
 }
