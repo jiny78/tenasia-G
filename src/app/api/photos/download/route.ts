@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { requireEnv } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
@@ -14,6 +15,8 @@ const CREDIT_COST: Record<string, Record<string, number>> = {
   commercial: { web: 3, print: 5, original: 8  },
   extended:   { web: 15, print: 15, original: 15 },
 };
+
+type Resolution = "web" | "print" | "original";
 
 // ── R2 presigned URL 생성 클라이언트 ───────────────────────────────
 const s3 = new S3Client({
@@ -63,79 +66,125 @@ export async function POST(req: NextRequest) {
   if (!photoId || typeof photoId !== "string") {
     return NextResponse.json({ error: "photoId가 필요합니다." }, { status: 400 });
   }
-  const license    = (licenseType ?? "editorial").toLowerCase();
-  const resolution_ = (resolution  ?? "web").toLowerCase();
+  const license = (licenseType ?? "editorial").toLowerCase();
+  const normalizedResolution = (resolution ?? "web").toLowerCase() as Resolution;
 
   const costRow = CREDIT_COST[license];
   if (!costRow) {
     return NextResponse.json({ error: `알 수 없는 licenseType: ${license}` }, { status: 400 });
   }
-  const creditCost = costRow[resolution_];
+  const creditCost = costRow[normalizedResolution];
   if (creditCost === undefined) {
-    return NextResponse.json({ error: `알 수 없는 resolution: ${resolution_}` }, { status: 400 });
+    return NextResponse.json({ error: `알 수 없는 resolution: ${normalizedResolution}` }, { status: 400 });
   }
 
   const photoName = photoId.split("/").pop() ?? "tenasia-photo.jpg";
-  const now       = new Date();
-  const cutoff90  = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-  const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-
-  // 3. 90일 내 동일 사진 + 동일 라이선스 재다운로드 확인 (무료 재다운로드)
-  const existing = await prisma.download.findFirst({
-    where: {
-      userId,
-      photoId,
-      licenseType: license,
-      createdAt: { gte: cutoff90 },
-    },
-    select: { id: true },
-  });
+  const now = new Date();
+  const lockKey = `${userId}:${photoId}:${license}:${normalizedResolution}`;
 
   let usedCredits = 0;
+  let redownload = false;
+  let balance = 0;
+  let expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
-  if (!existing) {
-    // 4. Atomic 크레딧 차감:
-    //    UPDATE "Credit" SET balance = balance - N
-    //    WHERE "userId" = ? AND balance >= N
-    //    → count === 0 이면 잔액 부족 (race condition 안전)
-    const deducted = await prisma.credit.updateMany({
-      where: {
-        userId,
-        balance: { gte: creditCost },
-      },
-      data: {
-        balance: { decrement: creditCost },
-      },
-    });
+  try {
+    const txn = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
 
-    if (deducted.count === 0) {
-      // 현재 잔액 조회해서 프론트에 전달
-      const credit  = await prisma.credit.findUnique({ where: { userId }, select: { balance: true } });
-      const balance = credit?.balance ?? 0;
-      return NextResponse.json(
-        {
-          error:        "크레딧이 부족합니다.",
-          code:         "INSUFFICIENT_CREDITS",
-          balance,
-          required:     creditCost,
+      const existing = await tx.download.findFirst({
+        where: {
+          userId,
+          photoId,
+          licenseType: license,
+          resolution: normalizedResolution,
+          expiresAt: { gt: now },
         },
-        { status: 402 },
-      );
-    }
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          expiresAt: true,
+        },
+      });
 
-    usedCredits = creditCost;
+      if (existing) {
+        const credit = await tx.credit.findUnique({
+          where: { userId },
+          select: { balance: true },
+        });
+        return {
+          redownload: true,
+          usedCredits: 0,
+          balance: credit?.balance ?? 0,
+          expiresAt: existing.expiresAt,
+        };
+      }
 
-    // 5. 다운로드 이력 저장
-    await prisma.download.create({
-      data: {
-        userId,
-        photoId,
-        photoName,
-        licenseType: license,
-        creditsUsed: creditCost,
-        expiresAt,
-      },
+      const deducted = await tx.credit.updateMany({
+        where: {
+          userId,
+          balance: { gte: creditCost },
+        },
+        data: {
+          balance: { decrement: creditCost },
+        },
+      });
+
+      if (deducted.count === 0) {
+        const credit = await tx.credit.findUnique({
+          where: { userId },
+          select: { balance: true },
+        });
+        throw new NextResponse(
+          JSON.stringify({
+            error: "크레딧이 부족합니다.",
+            code: "INSUFFICIENT_CREDITS",
+            balance: credit?.balance ?? 0,
+            required: creditCost,
+          }),
+          {
+            status: 402,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const nextExpiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+      await tx.download.create({
+        data: {
+          userId,
+          photoId,
+          photoName,
+          licenseType: license,
+          resolution: normalizedResolution,
+          creditsUsed: creditCost,
+          expiresAt: nextExpiresAt,
+        },
+      });
+
+      const credit = await tx.credit.findUnique({
+        where: { userId },
+        select: { balance: true },
+      });
+
+      return {
+        redownload: false,
+        usedCredits: creditCost,
+        balance: credit?.balance ?? 0,
+        expiresAt: nextExpiresAt,
+      };
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
+
+    redownload = txn.redownload;
+    usedCredits = txn.usedCredits;
+    balance = txn.balance;
+    expiresAt = txn.expiresAt;
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    throw error;
   }
 
   // 6. R2 presigned URL 생성
@@ -153,15 +202,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "다운로드 URL 생성에 실패했습니다. 다시 시도해주세요." }, { status: 500 });
   }
 
-  // 업데이트된 잔액 조회
-  const updatedCredit = await prisma.credit.findUnique({ where: { userId }, select: { balance: true } });
-  const balance       = updatedCredit?.balance ?? 0;
-
   return NextResponse.json({
     downloadUrl,
-    creditsUsed:  usedCredits,
-    redownload:   !!existing,
+    creditsUsed: usedCredits,
+    redownload,
     balance,
-    expiresAt:    expiresAt.toISOString(),
+    expiresAt: expiresAt.toISOString(),
   });
 }

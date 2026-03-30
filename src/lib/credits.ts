@@ -68,6 +68,7 @@ export function useCredits() {
       _photoUrl: string,
       photoName?: string,
       licenseType = "editorial",
+      resolution = "web",
     ): Promise<string | null> => {
       if (!session?.user?.id) {
         return null;
@@ -76,7 +77,7 @@ export function useCredits() {
       const res = await fetch("/api/account/downloads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoId, photoName, licenseType }),
+        body: JSON.stringify({ photoId, photoName, licenseType, resolution }),
       });
       const data = await res.json();
       if (!res.ok) return null;

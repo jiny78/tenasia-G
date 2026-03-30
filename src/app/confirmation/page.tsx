@@ -17,8 +17,9 @@ interface CheckoutResult {
   currency: string;
 }
 
-const MAX_POLLS = 12;
-const POLL_MS = 2500;
+const FAST_POLL_LIMIT = 12;
+const FAST_POLL_MS = 2500;
+const SLOW_POLL_MS = 10000;
 
 function ConfirmationContent() {
   const params = useSearchParams();
@@ -33,6 +34,7 @@ function ConfirmationContent() {
   const [status, setStatus] = useState<Status>(() => (checkoutId ? "loading" : "unknown"));
   const [result, setResult] = useState<CheckoutResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [slowPolling, setSlowPolling] = useState(false);
 
   const pollCount = useRef(0);
 
@@ -73,13 +75,13 @@ function ConfirmationContent() {
         }
 
         pollCount.current += 1;
-        if (pollCount.current < MAX_POLLS) {
-          timer = setTimeout(poll, POLL_MS);
-          return;
+        if (pollCount.current >= FAST_POLL_LIMIT) {
+          setSlowPolling(true);
+          setError("Payment is taking longer than usual. We will keep checking automatically.");
         }
 
-        setError("Payment confirmation timed out. Please refresh or contact support if you were charged.");
-        setStatus("unknown");
+        const nextPollMs = pollCount.current < FAST_POLL_LIMIT ? FAST_POLL_MS : SLOW_POLL_MS;
+        timer = setTimeout(poll, nextPollMs);
       } catch {
         if (cancelled) return;
         setError("Network error");
@@ -106,7 +108,10 @@ function ConfirmationContent() {
               isDark ? "border-white/15 border-t-white/60" : "border-black/15 border-t-black/60"
             }`}
           />
-          <p className={`text-sm ${themeConfig.sub}`}>Checking payment status...</p>
+          <p className={`text-sm ${themeConfig.sub}`}>
+            {slowPolling ? "Still confirming payment..." : "Checking payment status..."}
+          </p>
+          {error && <p className={`text-xs ${themeConfig.sub}`}>{error}</p>}
         </div>
       </div>
     );

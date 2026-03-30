@@ -106,6 +106,7 @@ model Download {
   photoId     String
   photoName   String?
   licenseType String    @default("editorial")  // "editorial" | "commercial" | "single"
+  resolution  String    @default("web")        // "web" | "print" | "original"
   creditsUsed Int       @default(1)
   purchaseId  String?                           // Polar 단건 구매 연결 (nullable)
   expiresAt   DateTime

@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { createHmac } from "crypto";
+import { Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { requireEnv } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
-const CREDIT_COST: Record<string, number> = {
-  editorial: 1,
-  commercial: 3,
-  extended: 15,
-  single: 0,
+const CREDIT_COST: Record<string, Record<string, number>> = {
+  editorial: { web: 1, print: 2, original: 3 },
+  commercial: { web: 3, print: 5, original: 8 },
+  extended: { web: 15, print: 15, original: 15 },
+  single: { web: 0, print: 0, original: 0 },
 };
 
 function makeToken(url: string): string {
@@ -65,69 +66,97 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { photoId, photoName, licenseType = "editorial" } = await req.json();
+  const { photoId, photoName, licenseType = "editorial", resolution = "web" } = await req.json();
   if (!photoId || typeof photoId !== "string") {
     return NextResponse.json({ error: "Missing photoId" }, { status: 400 });
   }
 
   const normalizedLicense = typeof licenseType === "string" ? licenseType.toLowerCase() : "editorial";
-  const costAmount = CREDIT_COST[normalizedLicense];
+  const normalizedResolution = typeof resolution === "string" ? resolution.toLowerCase() : "web";
+  const costAmount = CREDIT_COST[normalizedLicense]?.[normalizedResolution];
   if (costAmount === undefined) {
-    return NextResponse.json({ error: "Invalid licenseType" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid licenseType or resolution" }, { status: 400 });
   }
 
   const userId = session.user.id;
   const now = new Date();
-  const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  const lockKey = `${userId}:${photoId}:${normalizedLicense}:${normalizedResolution}`;
 
-  const existing = await prisma.download.findFirst({
-    where: {
-      userId,
-      photoId,
-      licenseType: normalizedLicense,
-      createdAt: { gte: cutoff },
-    },
-    select: { id: true },
-  });
+  let redownload = false;
 
-  if (!existing) {
-    const deducted = await prisma.credit.updateMany({
-      where: {
-        userId,
-        balance: { gte: costAmount },
-      },
-      data: {
-        balance: { decrement: costAmount },
-      },
-    });
+  try {
+    const txn = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
 
-    if (deducted.count === 0) {
-      const credit = await prisma.credit.findUnique({
-        where: { userId },
-        select: { balance: true },
+      const existing = await tx.download.findFirst({
+        where: {
+          userId,
+          photoId,
+          licenseType: normalizedLicense,
+          resolution: normalizedResolution,
+          expiresAt: { gt: now },
+        },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
       });
-      return NextResponse.json(
-        { error: "Insufficient credits", balance: credit?.balance ?? 0 },
-        { status: 402 },
-      );
-    }
 
-    const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-    await prisma.download.create({
-      data: {
-        userId,
-        photoId,
-        photoName: photoName || null,
-        licenseType: normalizedLicense,
-        creditsUsed: costAmount,
-        expiresAt,
-      },
+      if (existing) {
+        return { redownload: true };
+      }
+
+      const deducted = await tx.credit.updateMany({
+        where: {
+          userId,
+          balance: { gte: costAmount },
+        },
+        data: {
+          balance: { decrement: costAmount },
+        },
+      });
+
+      if (deducted.count === 0) {
+        const credit = await tx.credit.findUnique({
+          where: { userId },
+          select: { balance: true },
+        });
+        throw new NextResponse(
+          JSON.stringify({ error: "Insufficient credits", balance: credit?.balance ?? 0 }),
+          {
+            status: 402,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+      await tx.download.create({
+        data: {
+          userId,
+          photoId,
+          photoName: photoName || null,
+          licenseType: normalizedLicense,
+          resolution: normalizedResolution,
+          creditsUsed: costAmount,
+          expiresAt,
+        },
+      });
+
+      return { redownload: false };
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
+
+    redownload = txn.redownload;
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    throw error;
   }
 
   try {
     const token = makeToken(photoId);
-    return NextResponse.json({ token, redownload: !!existing });
+    return NextResponse.json({ token, redownload });
   } catch {
     return NextResponse.json({ error: "Token generation failed" }, { status: 500 });
   }

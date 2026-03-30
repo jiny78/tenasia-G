@@ -15,6 +15,7 @@ const CREDIT_MAP: Record<string, number> = {
 };
 
 const SINGLE_PHOTO_PRODUCT_ID = "89730975-6c13-4bcf-93ec-849cfd474d80";
+const SINGLE_PHOTO_RESOLUTION = "original";
 
 // ── Webhooks 핸들러 (서명 검증 포함) ─────────────────────────────
 function createWebhookHandler() {
@@ -148,7 +149,12 @@ function createWebhookHandler() {
         if (isSinglePhoto && singlePhotoId) {
           const expiresAt      = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
           const alreadyGranted = await tx.download.findFirst({
-            where: { userId: user!.id, photoId: singlePhotoId, licenseType: singleLicense },
+            where: {
+              userId: user!.id,
+              photoId: singlePhotoId,
+              licenseType: singleLicense,
+              resolution: SINGLE_PHOTO_RESOLUTION,
+            },
           });
           if (!alreadyGranted) {
             await tx.download.create({
@@ -157,6 +163,7 @@ function createWebhookHandler() {
                 photoId:     singlePhotoId,
                 photoName:   singlePhotoName,
                 licenseType: singleLicense,
+                resolution:  SINGLE_PHOTO_RESOLUTION,
                 creditsUsed: 0,
                 purchaseId:  purchase.id,
                 expiresAt,

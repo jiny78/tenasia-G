@@ -8,6 +8,7 @@ interface DownloadRecord {
   photoId: string;
   photoName: string | null;
   licenseType: string;
+  resolution: string;
   creditsUsed: number;
   expiresAt: string;
   createdAt: string;
@@ -54,6 +55,7 @@ export default function DownloadsPage() {
           photoId: download.photoId,
           photoName: download.photoName,
           licenseType: download.licenseType,
+          resolution: download.resolution,
         }),
       });
       const data = await res.json();
@@ -111,6 +113,7 @@ export default function DownloadsPage() {
                       {new Date(download.createdAt).toLocaleDateString()}
                     </span>
                     <span className="text-white/20 text-xs">{download.licenseType}</span>
+                    <span className="text-white/20 text-xs">{download.resolution}</span>
                   </div>
                 </div>
 
