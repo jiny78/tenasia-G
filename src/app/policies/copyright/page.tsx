@@ -47,7 +47,7 @@ export default function CopyrightPage() {
         </p>
         <p>
           All editorial uses must include the following credit line in immediate proximity
-          to the image: <em className="not-italic font-medium">"Photo: TenAsia"</em>
+          to the image: <em className="not-italic font-medium">&quot;Photo: TenAsia&quot;</em>
         </p>
 
         <p className="font-medium opacity-100 mt-4">Commercial License</p>
@@ -112,7 +112,7 @@ export default function CopyrightPage() {
         <p>
           <strong>Commercial Use:</strong> Any commercial application that associates a
           depicted individual with a brand, product, or service requires a separate model
-          release and may require direct consent from the artist's management. TenAsia
+          release and may require direct consent from the artist&apos;s management. TenAsia
           cannot grant personality rights on behalf of depicted individuals.
         </p>
         <p>
@@ -145,7 +145,7 @@ export default function CopyrightPage() {
           Upon discovery of unauthorized use, TenAsia reserves the right to:
         </p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>Immediately terminate the offending party's license and account</li>
+          <li>Immediately terminate the offending party&apos;s license and account</li>
           <li>Issue formal takedown notices under the DMCA and equivalent laws</li>
           <li>
             Seek compensation equal to the applicable license fee plus a retroactive

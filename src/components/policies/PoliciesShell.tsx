@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n";
 
@@ -24,12 +24,11 @@ const THEME_LABELS: Record<ThemeKey, Record<"en" | "ko", string>> = {
 
 export default function PoliciesShell({ children }: { children: React.ReactNode }) {
   const { lang, setLang } = useLang();
-  const [theme, setThemeState] = useState<ThemeKey>("black");
-
-  useEffect(() => {
+  const [theme, setThemeState] = useState<ThemeKey>(() => {
+    if (typeof window === "undefined") return "black";
     const saved = localStorage.getItem("tg-theme") as ThemeKey | null;
-    if (saved && THEMES[saved]) setThemeState(saved);
-  }, []);
+    return saved && THEMES[saved] ? saved : "black";
+  });
 
   const changeTheme = (k: ThemeKey) => {
     setThemeState(k);

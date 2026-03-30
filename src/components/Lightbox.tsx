@@ -38,7 +38,10 @@ export default function Lightbox({ photos, index, onClose, onNav, onDownload }: 
     onNav(i);
   }, [onNav]);
 
-  useEffect(() => { setImgLoaded(false); }, [index]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setImgLoaded(false));
+    return () => cancelAnimationFrame(frame);
+  }, [index]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

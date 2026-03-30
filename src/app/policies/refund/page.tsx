@@ -74,7 +74,7 @@ export default function RefundPage() {
             upgrade — see Section 6 for details
           </li>
           <li>
-            <strong>Aesthetic Dissatisfaction:</strong> You dislike the photo's composition,
+            <strong>Aesthetic Dissatisfaction:</strong> You dislike the photo&apos;s composition,
             lighting, or style. High-resolution previews with watermarks are provided
             before purchase to allow evaluation
           </li>

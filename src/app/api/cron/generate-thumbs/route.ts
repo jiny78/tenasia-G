@@ -4,7 +4,6 @@ import {
   ListObjectsV2Command,
   GetObjectCommand,
   PutObjectCommand,
-  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 
@@ -44,15 +43,6 @@ async function listAllKeys(prefix: string): Promise<Set<string>> {
     token = r.IsTruncated ? r.NextContinuationToken : undefined;
   } while (token);
   return keys;
-}
-
-async function thumbExists(key: string): Promise<boolean> {
-  try {
-    await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: `thumbs/${THUMB_WIDTH}/${key}` }));
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function generateThumb(key: string): Promise<void> {

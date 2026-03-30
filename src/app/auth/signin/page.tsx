@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
@@ -44,10 +45,10 @@ function SignInForm() {
       <div className="w-full max-w-sm">
         {/* 로고 */}
         <div className="text-center mb-8">
-          <a href="/" className="inline-flex items-baseline gap-2 hover:opacity-80 transition-opacity">
+          <Link href="/" className="inline-flex items-baseline gap-2 hover:opacity-80 transition-opacity">
             <span className="text-white text-base font-bold tracking-[0.15em] uppercase">Tenasia</span>
             <span className="text-white/30 text-[10px] tracking-[0.4em] uppercase">{tr.gallery}</span>
-          </a>
+          </Link>
         </div>
 
         <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 shadow-2xl">
@@ -120,9 +121,9 @@ function SignInForm() {
 
           <p className="mt-4 text-center text-white/30 text-xs">
             {tr.authNoAccount}{" "}
-            <a href="/auth/signup" className="text-white/60 hover:text-white transition-colors underline">
+            <Link href="/auth/signup" className="text-white/60 hover:text-white transition-colors underline">
               {tr.authSignUp}
-            </a>
+            </Link>
           </p>
         </div>
       </div>

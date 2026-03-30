@@ -4,12 +4,15 @@ import { useState, useEffect, ReactNode } from "react";
 import { Lang, LANG_KEY, LangContext } from "@/lib/i18n";
 
 export default function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("en");
+  const [lang, setLangState] = useState<Lang>(() => {
+    if (typeof window === "undefined") return "en";
+    const saved = localStorage.getItem(LANG_KEY);
+    return saved === "ko" ? "ko" : "en";
+  });
 
   useEffect(() => {
-    const saved = localStorage.getItem(LANG_KEY) as Lang | null;
-    if (saved === "en" || saved === "ko") setLangState(saved);
-  }, []);
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const setLang = (l: Lang) => {
     setLangState(l);

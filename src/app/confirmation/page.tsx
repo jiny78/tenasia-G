@@ -25,21 +25,19 @@ function ConfirmationContent() {
   const router     = useRouter();
   const checkoutId = params.get("checkout_id");
 
-  const [theme, setTheme] = useState<ThemeKey>("black");
-  const [status, setStatus] = useState<Status>("loading");
+  const [theme] = useState<ThemeKey>(() => {
+    if (typeof window === "undefined") return "black";
+    const stored = localStorage.getItem("tg-theme") as ThemeKey | null;
+    return stored && stored in THEMES ? stored : "black";
+  });
+  const [status, setStatus] = useState<Status>(() => (checkoutId ? "loading" : "unknown"));
   const [result, setResult] = useState<CheckoutResult | null>(null);
   const [error,  setError]  = useState<string | null>(null);
 
   const pollCount = useRef(0);
 
   useEffect(() => {
-    const stored = localStorage.getItem("tg-theme") as ThemeKey | null;
-    if (stored && stored in THEMES) setTheme(stored);
-  }, []);
-
-  useEffect(() => {
     if (!checkoutId) {
-      setStatus("unknown");
       return;
     }
 

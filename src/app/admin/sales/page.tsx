@@ -4,8 +4,9 @@ import SalesBarChart from "./SalesBarChart";
 function fmtMoney(cents: number) { return `$${(cents / 100).toFixed(2)}`; }
 
 export default async function SalesPage() {
-  const from30  = new Date(Date.now() - 30 * 86400000);
-  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const now = new Date();
+  const from30  = new Date(now.getTime() - 30 * 86400000);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [allPurchases, monthPurchases, avgData, credits] = await Promise.all([
     prisma.purchase.findMany({

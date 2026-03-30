@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import AccountSidebar from "@/components/AccountSidebar";
@@ -18,10 +19,10 @@ export default async function AccountLayout({
       {/* 상단 바 */}
       <header className="sticky top-0 z-30 bg-[#111]/95 backdrop-blur border-b border-white/8">
         <div className="max-w-screen-lg mx-auto px-6 py-3 flex items-center justify-between">
-          <a href="/" className="flex items-baseline gap-2 hover:opacity-80 transition-opacity">
+          <Link href="/" className="flex items-baseline gap-2 hover:opacity-80 transition-opacity">
             <span className="text-sm font-bold tracking-[0.15em] uppercase">Tenasia</span>
             <span className="text-white/30 text-[10px] tracking-[0.4em] uppercase">Gallery</span>
-          </a>
+          </Link>
           <span className="text-white/40 text-xs truncate max-w-[200px]">
             {session.user?.email}
           </span>

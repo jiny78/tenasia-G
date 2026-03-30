@@ -7,8 +7,10 @@ export default async function DownloadsPage({
   const license = sp.license ?? "all";
   const page    = Math.max(1, parseInt(sp.page ?? "1"));
   const limit   = 20;
-  const today   = new Date(); today.setHours(0, 0, 0, 0);
-  const from30  = new Date(Date.now() - 30 * 86400000);
+  const now = new Date();
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const from30  = new Date(now.getTime() - 30 * 86400000);
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
   const where: Record<string, unknown> = { createdAt: { gte: from30 } };

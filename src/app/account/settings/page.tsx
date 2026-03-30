@@ -12,6 +12,12 @@ interface Credential {
 }
 
 const CRED_TYPES = ["press_id", "media_badge", "agency_letter", "other"];
+type ProfileForm = {
+  name: string | null;
+  company: string | null;
+  jobTitle: string | null;
+  country: string | null;
+};
 
 export default function SettingsPage() {
   const { data: session, update: updateSession } = useSession();
@@ -19,8 +25,8 @@ export default function SettingsPage() {
   const tr       = TRANSLATIONS[lang];
 
   // 프로필
-  const [profile, setProfile] = useState({
-    name: "", company: "", jobTitle: "", country: "",
+  const [profile, setProfile] = useState<ProfileForm>({
+    name: null, company: null, jobTitle: null, country: null,
   });
   const [profileMsg, setProfileMsg] = useState("");
 
@@ -37,18 +43,17 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (session?.user) {
-      setProfile({
-        name:     session.user.name     ?? "",
-        company:  session.user.company  ?? "",
-        jobTitle: "",
-        country:  "",
-      });
-    }
     fetch("/api/account/credentials")
       .then((r) => r.json())
       .then((d) => setCred(d.credential));
   }, [session]);
+
+  const resolvedProfile = {
+    name: profile.name ?? session?.user?.name ?? "",
+    company: profile.company ?? session?.user?.company ?? "",
+    jobTitle: profile.jobTitle ?? "",
+    country: profile.country ?? "",
+  };
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -57,11 +62,11 @@ export default function SettingsPage() {
     const res  = await fetch("/api/account/settings", {
       method:  "PUT",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(profile),
+      body:    JSON.stringify(resolvedProfile),
     });
     setSaving(false);
     if (res.ok) {
-      await updateSession({ name: profile.name });
+      await updateSession({ name: resolvedProfile.name });
       setProfileMsg(tr.accountProfileSaved);
     } else {
       const d = await res.json();
@@ -126,26 +131,26 @@ export default function SettingsPage() {
         <form onSubmit={saveProfile} className="space-y-3">
           <div>
             <label className={labelCls}>{tr.authName}</label>
-            <input type="text" value={profile.name}
+            <input type="text" value={resolvedProfile.name}
               onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
               placeholder={tr.authNamePlaceholder} className={inputCls} />
           </div>
           <div>
             <label className={labelCls}>{tr.authCompany}</label>
-            <input type="text" value={profile.company}
+            <input type="text" value={resolvedProfile.company}
               onChange={(e) => setProfile((p) => ({ ...p, company: e.target.value }))}
               placeholder={tr.authCompanyPlaceholder} className={inputCls} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>{tr.authJobTitle}</label>
-              <input type="text" value={profile.jobTitle}
+              <input type="text" value={resolvedProfile.jobTitle}
                 onChange={(e) => setProfile((p) => ({ ...p, jobTitle: e.target.value }))}
                 placeholder={tr.authJobTitlePlaceholder} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>{tr.authCountry}</label>
-              <input type="text" value={profile.country}
+              <input type="text" value={resolvedProfile.country}
                 onChange={(e) => setProfile((p) => ({ ...p, country: e.target.value }))}
                 placeholder={tr.authCountryPlaceholder} className={inputCls} />
             </div>

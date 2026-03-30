@@ -8,7 +8,8 @@ const COUNTRY_NAMES: Record<string, string> = {
 
 export default async function AnalyticsPage() {
   const days = 30;
-  const from = new Date(Date.now() - days * 86400000);
+  const now = new Date();
+  const from = new Date(now.getTime() - days * 86400000);
 
   const views = await prisma.pageView.findMany({
     where: { createdAt: { gte: from } },

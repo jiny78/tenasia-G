@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import PhotoGrid from "@/components/PhotoGrid";
@@ -51,14 +52,14 @@ function UserMenu({ theme }: { theme: ThemeKey }) {
 
   if (!session) {
     return (
-      <a href="/auth/signin"
+      <Link href="/auth/signin"
         className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
           isDark
             ? "border-white/15 text-white/60 hover:text-white hover:border-white/30"
             : "border-black/15 text-black/60 hover:text-black hover:border-black/30"
         }`}>
         {tr.signIn}
-      </a>
+      </Link>
     );
   }
 
@@ -91,17 +92,17 @@ function UserMenu({ theme }: { theme: ThemeKey }) {
               {session.user?.email}
             </p>
           </div>
-          <a href="/account"
+          <Link href="/account"
             className={`flex items-center px-3 py-2 text-sm transition-colors
                         ${isDark ? "text-white/70 hover:bg-white/8 hover:text-white" : "text-black/70 hover:bg-black/5 hover:text-black"}`}>
             Dashboard
-          </a>
+          </Link>
           {session.user?.isAdmin && (
-            <a href="/admin"
+            <Link href="/admin"
               className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors
                           ${isDark ? "text-amber-400 hover:bg-white/8 hover:text-amber-300" : "text-amber-600 hover:bg-black/5 hover:text-amber-700"}`}>
               <span className="text-xs">⚙</span> 관리자
-            </a>
+            </Link>
           )}
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
@@ -128,14 +129,13 @@ export default function Home() {
   const [page,      setPage]      = useState(1);
   const [loading,   setLoading]   = useState(false);
   const [filters,   setFilters]   = useState<Filters>(EMPTY);
-  const [theme,     setTheme]     = useState<ThemeKey>("black");
+  const [theme,     setTheme]     = useState<ThemeKey>(() => {
+    if (typeof window === "undefined") return "black";
+    const saved = localStorage.getItem("tg-theme") as ThemeKey | null;
+    return saved && THEMES[saved] ? saved : "black";
+  });
 
   const { refresh: refreshCredits } = useCredits();
-
-  useEffect(() => {
-    const saved = localStorage.getItem("tg-theme") as ThemeKey | null;
-    if (saved && THEMES[saved]) setTheme(saved);
-  }, []);
 
   useEffect(() => {
     const block = (e: KeyboardEvent) => {
@@ -245,10 +245,10 @@ export default function Home() {
       <header className={`sticky top-0 z-30 ${t.header} backdrop-blur border-b ${t.border} transition-colors duration-300`}>
         <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-start gap-6">
           {/* 로고 */}
-          <a href="/" className="flex items-baseline gap-2 shrink-0 hover:opacity-80 transition-opacity mt-1">
+          <Link href="/" className="flex items-baseline gap-2 shrink-0 hover:opacity-80 transition-opacity mt-1">
             <span className="text-base font-bold tracking-[0.15em] uppercase">Tenasia</span>
             <span className={`text-[10px] tracking-[0.4em] uppercase ${t.sub}`}>{tr.gallery}</span>
-          </a>
+          </Link>
 
           {/* 필터 */}
           <div className="flex-1 min-w-0">

@@ -19,7 +19,7 @@ export function addCredits(n: number): number {
   return next;
 }
 
-export function useCredit(): boolean {
+export function spendLocalCredit(): boolean {
   const c = getCredits();
   if (c <= 0) return false;
   localStorage.setItem(KEY, String(c - 1));
@@ -44,6 +44,7 @@ export function useCredits() {
   const [loading, setLoading]     = useState(true);
 
   const refresh = useCallback(async () => {
+    setLoading(true);
     if (session?.user?.id) {
       try {
         const res  = await fetch("/api/account/credits");
@@ -60,8 +61,10 @@ export function useCredits() {
 
   useEffect(() => {
     if (status === "loading") return;
-    setLoading(true);
-    refresh();
+    const timer = setTimeout(() => {
+      void refresh();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [status, refresh]);
 
   /** 크레딧 차감 + (로그인) 다운로드 기록. 성공 시 signed token 반환 */
@@ -95,7 +98,7 @@ export function useCredits() {
           localStorage.setItem("tg-credits", String(c - creditsUsed));
           setBalance((prev) => Math.max(0, prev - creditsUsed));
         } else {
-          const ok = useCredit();
+          const ok = spendLocalCredit();
           if (!ok) return null;
           setBalance((prev) => Math.max(0, prev - 1));
         }

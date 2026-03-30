@@ -9,12 +9,12 @@ export const metadata: Metadata = {
 };
 
 const TOC = [
-  { id: "commitment",     title: "Our Commitment" },
-  { id: "technical",      title: "Technical Safeguards" },
+  { id: "commitment", title: "Our Commitment" },
+  { id: "technical", title: "Technical Safeguards" },
   { id: "organizational", title: "Organizational Safeguards" },
-  { id: "content",        title: "Content Protection" },
-  { id: "incident",       title: "Incident Response" },
-  { id: "reporting",      title: "Reporting a Security Vulnerability" },
+  { id: "content", title: "Content Protection" },
+  { id: "incident", title: "Incident Response" },
+  { id: "reporting", title: "Reporting a Security Vulnerability" },
 ];
 
 export default function SecurityPage() {
@@ -22,146 +22,80 @@ export default function SecurityPage() {
     <PolicyLayout title="Security Policy" tocItems={TOC} currentPath="/policies/security">
       <PolicySection id="commitment" title="Our Commitment">
         <p>
-          The Korea Entertainment Media is committed to maintaining the security of our platform,
-          protecting the personal information of our users, and safeguarding the intellectual
-          property of our photographers. Our security program is built on three core principles:
+          The Korea Entertainment Media is committed to maintaining the security of our
+          platform, protecting the personal information of our users, and safeguarding the
+          intellectual property of our photographers.
         </p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>
-            <strong>Confidentiality:</strong> Ensuring that information is accessible only
-            to authorized individuals
-          </li>
-          <li>
-            <strong>Integrity:</strong> Protecting information from unauthorized modification
-            or destruction
-          </li>
-          <li>
-            <strong>Availability:</strong> Ensuring reliable access to the Service for
-            legitimate users
-          </li>
+          <li><strong>Confidentiality:</strong> Information is accessible only to authorized individuals</li>
+          <li><strong>Integrity:</strong> Information is protected from unauthorized modification or destruction</li>
+          <li><strong>Availability:</strong> Legitimate users can access the Service reliably</li>
         </ul>
       </PolicySection>
 
       <PolicySection id="technical" title="Technical Safeguards">
         <ul className="list-disc pl-5 space-y-1">
-          <li>
-            <strong>Encryption in Transit:</strong> All data exchanged between your browser
-            and our servers is encrypted using TLS 1.2 or higher (HTTPS)
-          </li>
-          <li>
-            <strong>Encryption at Rest:</strong> Sensitive stored data is protected with
-            AES-256 encryption
-          </li>
-          <li>
-            <strong>Payment Security:</strong> Payment processing is handled exclusively
-            by Stripe (PCI DSS Level 1 certified); TenAsia does not store card numbers
-            or sensitive authentication data
-          </li>
-          <li>
-            <strong>Access Controls:</strong> Role-based access controls and the principle
-            of least privilege restrict internal access to production systems and user data
-          </li>
-          <li>
-            <strong>Vulnerability Management:</strong> Regular security assessments and
-            dependency audits are conducted to identify and remediate vulnerabilities
-          </li>
-          <li>
-            <strong>Multi-Factor Authentication:</strong> MFA is required for all internal
-            administrative access to production systems
-          </li>
-          <li>
-            <strong>Secure Storage:</strong> Image files are stored on Cloudflare R2 with
-            server-side proxy access; direct bucket URLs are never exposed to end users
-          </li>
+          <li><strong>Encryption in Transit:</strong> All browser-to-server traffic uses TLS 1.2 or higher</li>
+          <li><strong>Encryption at Rest:</strong> Sensitive stored data is protected with strong encryption controls</li>
+          <li><strong>Payment Security:</strong> Payment processing is handled by Polar and other authorized processors; TenAsia does not store card numbers or sensitive authentication data</li>
+          <li><strong>Access Controls:</strong> Role-based access and least-privilege rules restrict production access</li>
+          <li><strong>Vulnerability Management:</strong> Regular assessments and dependency audits are performed</li>
+          <li><strong>Multi-Factor Authentication:</strong> MFA is required for internal administrative access</li>
+          <li><strong>Secure Storage:</strong> Image files are stored on Cloudflare R2 behind server-side proxy access</li>
         </ul>
       </PolicySection>
 
       <PolicySection id="organizational" title="Organizational Safeguards">
         <ul className="list-disc pl-5 space-y-1">
-          <li>
-            <strong>Least Privilege:</strong> Employees and contractors are granted only
-            the minimum level of access required to perform their duties
-          </li>
-          <li>
-            <strong>Security Training:</strong> Team members receive regular security
-            awareness training covering phishing, social engineering, and data handling
-          </li>
-          <li>
-            <strong>Vendor Assessment:</strong> Third-party service providers are evaluated
-            for security compliance before integration; data processing agreements (DPAs)
-            are executed where required
-          </li>
-          <li>
-            <strong>Incident Response Plan:</strong> A formal incident response plan is
-            maintained and tested periodically to ensure rapid containment and recovery
-          </li>
+          <li><strong>Least Privilege:</strong> Team members receive only the access required for their work</li>
+          <li><strong>Security Training:</strong> Personnel receive recurring training on phishing, social engineering, and data handling</li>
+          <li><strong>Vendor Assessment:</strong> Service providers are evaluated for security fit before integration</li>
+          <li><strong>Incident Response Plan:</strong> A formal response process is maintained and tested periodically</li>
         </ul>
       </PolicySection>
 
       <PolicySection id="content" title="Content Protection">
         <p>
-          We employ multiple layers of technical protection to prevent unauthorized
-          reproduction and distribution of our photography:
+          We employ multiple layers of technical protection to prevent unauthorized reproduction
+          and distribution of our photography:
         </p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>
-            <strong>Visible Watermark:</strong> Preview images displayed in the gallery
-            carry a "TENASIA" watermark; watermark-free originals are only available to
-            verified purchasers
-          </li>
-          <li>
-            <strong>Metadata Embedding:</strong> All images contain EXIF and IPTC copyright
-            metadata identifying The Korea Entertainment Media as the rights holder
-          </li>
-          <li>
-            <strong>Forensic Tracking:</strong> Downloaded originals may contain imperceptible
-            forensic watermarks to trace the source of unauthorized distribution
-          </li>
-          <li>
-            <strong>Server-Side Proxying:</strong> High-resolution files are served via
-            authenticated server-side proxy routes; R2 storage URLs are never disclosed
-            to the client
-          </li>
-          <li>
-            <strong>Browser Protections:</strong> Right-click context menus, drag-and-drop
-            image saving, and keyboard shortcuts (Ctrl+S, Ctrl+U) are disabled on gallery
-            preview images
-          </li>
-          <li>
-            <strong>Automated Monitoring:</strong> We use automated services to scan
-            the web for unauthorized use of our imagery
-          </li>
+          <li><strong>Visible Watermark:</strong> Preview images carry a &quot;TENASIA&quot; watermark</li>
+          <li><strong>Metadata Embedding:</strong> Images contain EXIF and IPTC copyright metadata</li>
+          <li><strong>Forensic Tracking:</strong> Downloaded originals may include forensic markers</li>
+          <li><strong>Server-Side Proxying:</strong> High-resolution files are served through authenticated server routes</li>
+          <li><strong>Browser Protections:</strong> Common save shortcuts and right-click actions are restricted on previews</li>
+          <li><strong>Automated Monitoring:</strong> We monitor for unauthorized reuse of our imagery</li>
         </ul>
       </PolicySection>
 
       <PolicySection id="incident" title="Incident Response">
         <p>
-          In the event of a security incident that affects the confidentiality or integrity
-          of personal data, TenAsia will:
+          In the event of a security incident that affects the confidentiality or integrity of
+          personal data, TenAsia will:
         </p>
         <ol className="list-decimal pl-5 space-y-1">
           <li>Contain the incident and assess its scope as quickly as possible</li>
-          <li>
-            Notify affected users and, where required, supervisory authorities within
-            seventy-two (72) hours of becoming aware of the breach, in accordance with
-            Korea's Personal Information Protection Act (PIPA) and the EU General Data
-            Protection Regulation (GDPR)
-          </li>
+          <li>Notify affected users and, where required, supervisory authorities within applicable deadlines</li>
           <li>Investigate the root cause and implement corrective measures</li>
           <li>Provide ongoing updates to affected parties as the investigation progresses</li>
         </ol>
+        <p className="mt-3">
+          This process is designed to align with applicable laws including Korea&apos;s Personal
+          Information Protection Act (PIPA) and relevant international privacy frameworks.
+        </p>
       </PolicySection>
 
       <PolicySection id="reporting" title="Reporting a Security Vulnerability">
         <p>
-          We welcome responsible disclosure of security vulnerabilities. If you discover
-          a potential security issue in our platform, please report it to us before
-          disclosing it publicly so we can investigate and address it promptly.
+          We welcome responsible disclosure of security vulnerabilities. If you discover a
+          potential security issue in our platform, please report it to us before disclosing
+          it publicly so we can investigate and address it promptly.
         </p>
         <p>
-          Please include a clear description of the vulnerability, steps to reproduce,
-          and the potential impact. We will acknowledge your report within 48 hours and
-          keep you informed of our progress.
+          Please include a clear description of the vulnerability, steps to reproduce, and the
+          potential impact. We will acknowledge your report within 48 hours and keep you informed
+          of our progress.
         </p>
         <p>
           Security reports:{" "}

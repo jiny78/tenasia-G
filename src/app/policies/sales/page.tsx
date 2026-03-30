@@ -174,7 +174,7 @@ export default function SalesPage() {
           your account page for your records.
         </p>
         <p>
-          If you require a modified invoice format for your organization's accounting
+          If you require a modified invoice format for your organization&apos;s accounting
           requirements, contact{" "}
           <a href="mailto:tenasia.trend@gmail.com" className="underline underline-offset-2">
             tenasia.trend@gmail.com

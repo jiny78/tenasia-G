@@ -40,7 +40,10 @@ export default function FilterBar({
   const pillRowRef = useRef<HTMLDivElement>(null);
 
   /* sync search input when filters reset externally */
-  useEffect(() => { setSearchInput(filters.q); }, [filters.q]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setSearchInput(filters.q));
+    return () => cancelAnimationFrame(frame);
+  }, [filters.q]);
 
   /* close dropdown on outside click */
   useEffect(() => {
@@ -404,9 +407,18 @@ function DateRangePill({
   const [localTo,   setLocalTo]   = useState(filters.dateTo   || "");
 
   // 외부에서 필터가 초기화될 때 로컬 상태도 리셋
-  useEffect(() => { setLocalYear(filters.year     || ""); }, [filters.year]);
-  useEffect(() => { setLocalFrom(filters.dateFrom || ""); }, [filters.dateFrom]);
-  useEffect(() => { setLocalTo(filters.dateTo     || ""); }, [filters.dateTo]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setLocalYear(filters.year || ""));
+    return () => cancelAnimationFrame(frame);
+  }, [filters.year]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setLocalFrom(filters.dateFrom || ""));
+    return () => cancelAnimationFrame(frame);
+  }, [filters.dateFrom]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setLocalTo(filters.dateTo || ""));
+    return () => cancelAnimationFrame(frame);
+  }, [filters.dateTo]);
 
   const hasSelection = localYear || localFrom || localTo;
 
@@ -504,13 +516,14 @@ function DateRangePill({
 
 /* ─── DropPanel ─────────────────────────────────────────────── */
 function DropPanel({
-  children, isDark: _, dropBg, className = "",
+  children, isDark: _isDark, dropBg, className = "",
 }: {
   children: React.ReactNode;
-  isDark: boolean;
+  isDark?: boolean;
   dropBg: string;
   className?: string;
 }) {
+  void _isDark;
   return (
     <div className={`absolute top-full mt-1.5 left-0 z-50 border rounded-lg shadow-2xl ${dropBg} ${className}`}>
       {children}

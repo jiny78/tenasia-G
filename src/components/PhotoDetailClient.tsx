@@ -8,7 +8,6 @@ import { useSession } from "next-auth/react";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
 import { useCredits } from "@/lib/credits";
 import { THEMES, ThemeKey } from "@/lib/themes";
-import { encodePhotoKey } from "@/lib/photoKey";
 import InsufficientCreditsModal from "@/components/InsufficientCreditsModal";
 import type { PhotoMeta } from "@/app/photo/[id]/page";
 

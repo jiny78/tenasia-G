@@ -12,25 +12,26 @@ export default function LoadingBar({
   const [width, setWidth] = useState(0);
   const [visible, setVisible] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
+    if (frameRef.current) cancelAnimationFrame(frameRef.current);
 
     if (loading) {
-      setWidth(0);
-      setVisible(true);
-      // 두 프레임 후 80%까지 천천히 채우기
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => setWidth(80))
-      );
+      frameRef.current = requestAnimationFrame(() => {
+        setWidth(0);
+        setVisible(true);
+        frameRef.current = requestAnimationFrame(() => setWidth(80));
+      });
     } else {
-      // 완료: 100%까지 빠르게 채운 뒤 사라짐
-      setWidth(100);
+      frameRef.current = requestAnimationFrame(() => setWidth(100));
       hideTimer.current = setTimeout(() => setVisible(false), 400);
     }
 
     return () => {
       if (hideTimer.current) clearTimeout(hideTimer.current);
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
   }, [loading]);
 
