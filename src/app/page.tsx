@@ -1,326 +1,235 @@
-"use client";
-
-import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
-import PhotoGrid from "@/components/PhotoGrid";
-import FilterBar from "@/components/FilterBar";
+import { getServerSession } from "next-auth";
 import CreditBadge from "@/components/CreditBadge";
-import { Photo, Person, DateEntry, GalleryEvent } from "@/types";
-import { useCredits } from "@/lib/credits";
-import { useLang, TRANSLATIONS } from "@/lib/i18n";
-import { THEMES, ThemeKey } from "@/lib/themes";
-import LoadingBar from "@/components/LoadingBar";
+import { authOptions } from "@/lib/auth";
+import { getAllPhotos, getEvents, getPersons } from "@/lib/r2";
 
-export type { ThemeKey };
-export { THEMES };
-
-export type Filters = {
-  q:           string;
-  person:      string;
-  event:       string;
-  dateFrom:    string;  // YYYY-MM
-  dateTo:      string;  // YYYY-MM
-  year:        string;  // legacy compat
-  orientation: "" | "landscape" | "portrait" | "square";
-  agency:      string;
+type EventCard = {
+  name: string;
+  count: number;
+  photoId: string;
+  date: string | null;
 };
 
-const EMPTY: Filters = {
-  q: "", person: "", event: "", dateFrom: "", dateTo: "", year: "", orientation: "", agency: "",
-};
+function buildEventCards(): Promise<EventCard[]> {
+  return Promise.all([getAllPhotos(), getEvents()]).then(([photos, events]) => {
+    const byEvent = new Map<string, { photoId: string; date: string | null }>();
+    for (const photo of photos) {
+      if (!photo.role || byEvent.has(photo.role)) continue;
+      byEvent.set(photo.role, { photoId: photo.id, date: photo.date });
+    }
 
-type AgencyEntry = { name: string; count: number };
-
-// ── 사용자 아바타 드롭다운 ────────────────────────────────────
-function UserMenu({ theme }: { theme: ThemeKey }) {
-  const { data: session } = useSession();
-  const { lang }          = useLang();
-  const tr                = TRANSLATIONS[lang];
-  const [open, setOpen]   = useState(false);
-  const ref               = useRef<HTMLDivElement>(null);
-  const isDark            = theme === "black" || theme === "charcoal";
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  if (!session) {
-    return (
-      <Link href="/auth/signin"
-        className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
-          isDark
-            ? "border-white/15 text-white/60 hover:text-white hover:border-white/30"
-            : "border-black/15 text-black/60 hover:text-black hover:border-black/30"
-        }`}>
-        {tr.signIn}
-      </Link>
-    );
-  }
-
-  const name    = session.user?.name ?? session.user?.email ?? "User";
-  const initial = name.charAt(0).toUpperCase();
-  const image   = session.user?.image;
-
-  return (
-    <div ref={ref} className="relative">
-      <button onClick={() => setOpen((o) => !o)}
-        className="w-7 h-7 rounded-full overflow-hidden border border-white/20 hover:border-white/50
-                   transition-colors focus:outline-none">
-        {image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt={name} className="w-full h-full object-cover" />
-        ) : (
-          <div className={`w-full h-full flex items-center justify-center text-xs font-bold
-                           ${isDark ? "bg-white/15 text-white" : "bg-black/10 text-black"}`}>
-            {initial}
-          </div>
-        )}
-      </button>
-
-      {open && (
-        <div className={`absolute right-0 top-9 w-48 rounded-xl border shadow-2xl z-50 overflow-hidden
-                         ${isDark ? "bg-[#1a1a1a] border-white/10" : "bg-white border-black/8"}`}>
-          <div className={`px-3 py-2.5 border-b ${isDark ? "border-white/8" : "border-black/8"}`}>
-            <p className={`text-xs font-medium truncate ${isDark ? "text-white" : "text-black"}`}>{name}</p>
-            <p className={`text-[11px] truncate ${isDark ? "text-white/40" : "text-black/40"}`}>
-              {session.user?.email}
-            </p>
-          </div>
-          <Link href="/account"
-            className={`flex items-center px-3 py-2 text-sm transition-colors
-                        ${isDark ? "text-white/70 hover:bg-white/8 hover:text-white" : "text-black/70 hover:bg-black/5 hover:text-black"}`}>
-            Dashboard
-          </Link>
-          {session.user?.isAdmin && (
-            <Link href="/admin"
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors
-                          ${isDark ? "text-amber-400 hover:bg-white/8 hover:text-amber-300" : "text-amber-600 hover:bg-black/5 hover:text-amber-700"}`}>
-              <span className="text-xs">⚙</span> 관리자
-            </Link>
-          )}
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className={`w-full text-left flex items-center px-3 py-2 text-sm transition-colors
-                        ${isDark ? "text-white/40 hover:bg-white/8 hover:text-white" : "text-black/40 hover:bg-black/5 hover:text-black"}`}>
-            {tr.signOut}
-          </button>
-        </div>
-      )}
-    </div>
-  );
+    return events
+      .filter((event) => byEvent.has(event.name))
+      .sort((a, b) => {
+        const aDate = byEvent.get(a.name)?.date ?? "";
+        const bDate = byEvent.get(b.name)?.date ?? "";
+        return bDate.localeCompare(aDate) || b.count - a.count;
+      })
+      .slice(0, 6)
+      .map((event) => ({
+        name: event.name,
+        count: event.count,
+        photoId: byEvent.get(event.name)!.photoId,
+        date: byEvent.get(event.name)!.date,
+      }));
+  });
 }
 
-export default function Home() {
-  const router        = useRouter();
-  const { lang, setLang } = useLang();
-  const tr = TRANSLATIONS[lang];
-  const [photos,    setPhotos]    = useState<Photo[]>([]);
-  const [persons,   setPersons]   = useState<Person[]>([]);
-  const [dates,     setDates]     = useState<DateEntry[]>([]);
-  const [events,    setEvents]    = useState<GalleryEvent[]>([]);
-  const [agencies,  setAgencies]  = useState<AgencyEntry[]>([]);
-  const [total,     setTotal]     = useState(0);
-  const [page,      setPage]      = useState(1);
-  const [loading,   setLoading]   = useState(false);
-  const [filters,   setFilters]   = useState<Filters>(EMPTY);
-  const [theme,     setTheme]     = useState<ThemeKey>(() => {
-    if (typeof window === "undefined") return "black";
-    const saved = localStorage.getItem("tg-theme") as ThemeKey | null;
-    return saved && THEMES[saved] ? saved : "black";
-  });
+export default async function HomePage() {
+  const session = await getServerSession(authOptions);
+  const [eventCards, persons, photos] = await Promise.all([
+    buildEventCards(),
+    getPersons(),
+    getAllPhotos(),
+  ]);
 
-  const { refresh: refreshCredits } = useCredits();
-
-  useEffect(() => {
-    const block = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && ["s", "S", "u", "U"].includes(e.key)) e.preventDefault();
-    };
-    document.addEventListener("keydown", block);
-    return () => document.removeEventListener("keydown", block);
-  }, []);
-
-  const changeTheme = (k: ThemeKey) => {
-    setTheme(k);
-    localStorage.setItem("tg-theme", k);
-  };
-
-  const t = THEMES[theme];
-
-  /* ── API 호출 ──────────────────────────────────────────────── */
-  const fetchPhotos = useCallback(async (f: Filters, p: number) => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (f.q)           params.set("q",           f.q);
-    if (f.person)      params.set("person",      f.person);
-    if (f.event)       params.set("event",       f.event);
-    if (f.dateFrom)    params.set("dateFrom",    f.dateFrom);
-    if (f.dateTo)      params.set("dateTo",      f.dateTo);
-    if (f.year)        params.set("year",        f.year);
-    if (f.orientation) params.set("orientation", f.orientation);
-    if (f.agency)      params.set("agency",      f.agency);
-    params.set("page",  String(p));
-    params.set("limit", "12");
-    try {
-      const res  = await fetch(`/api/gallery?${params}`);
-      const data = await res.json();
-      if (p === 1) setPhotos(data.photos ?? []);
-      else         setPhotos((prev) => [...prev, ...(data.photos ?? [])]);
-      setTotal(data.total ?? 0);
-      setPage(p);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  }, []);
-
-  const fetchEvents = useCallback(async (year: string) => {
-    const qs = year ? `?year=${year}` : "";
-    try {
-      const res  = await fetch(`/api/gallery/events${qs}`);
-      const data = await res.json();
-      setEvents(data.events ?? []);
-    } catch (e) { console.error(e); }
-  }, []);
-
-
-  /* ── 초기 로드: URL → Filters 복원 ────────────────────────── */
-  useEffect(() => {
-    const sp = new URLSearchParams(window.location.search);
-    const initial: Filters = {
-      q:           sp.get("q")           ?? "",
-      person:      sp.get("person")      ?? "",
-      event:       sp.get("event")       ?? "",
-      dateFrom:    sp.get("dateFrom")    ?? "",
-      dateTo:      sp.get("dateTo")      ?? "",
-      year:        sp.get("year")        ?? "",
-      orientation: (sp.get("orientation") ?? "") as Filters["orientation"],
-      agency:      sp.get("agency")      ?? "",
-    };
-    setFilters(initial);
-
-    const metaQs = initial.year ? `?year=${initial.year}` : "";
-    fetch(`/api/gallery/meta${metaQs}`)
-      .then((r) => r.json())
-      .then((d) => {
-        setPersons(d.persons   ?? []);
-        setDates(d.dates       ?? []);
-        setEvents(d.events     ?? []);
-        setAgencies(d.agencies ?? []);
-      })
-      .catch(console.error);
-    fetchPhotos(initial, 1);
-  }, [fetchPhotos, fetchEvents]); // stable callbacks — runs once
-
-  /* ── 필터 변경 핸들러 ──────────────────────────────────────── */
-  const handleFilter = (next: Filters) => {
-    // URL 업데이트
-    const params = new URLSearchParams();
-    if (next.q)           params.set("q",           next.q);
-    if (next.person)      params.set("person",      next.person);
-    if (next.event)       params.set("event",       next.event);
-    if (next.dateFrom)    params.set("dateFrom",    next.dateFrom);
-    if (next.dateTo)      params.set("dateTo",      next.dateTo);
-    if (next.year)        params.set("year",        next.year);
-    if (next.orientation) params.set("orientation", next.orientation);
-    if (next.agency)      params.set("agency",      next.agency);
-    const qs = params.toString();
-    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
-
-    if (next.year !== filters.year) fetchEvents(next.year);
-    setFilters(next);
-    fetchPhotos(next, 1);
-  };
-
-  const isDark = theme === "black" || theme === "charcoal";
+  const featuredArtists = persons.slice(0, 8);
+  const recentPhotos = photos.slice(0, 8);
 
   return (
-    <div className={`min-h-screen ${t.bg} ${t.text} transition-colors duration-300`}>
-      {/* 로딩 바 */}
-      <LoadingBar loading={loading} isDark={isDark} />
-      {/* Header */}
-      <header className={`sticky top-0 z-30 ${t.header} backdrop-blur border-b ${t.border} transition-colors duration-300`}>
-        <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-start gap-6">
-          {/* 로고 */}
-          <Link href="/" className="flex items-baseline gap-2 shrink-0 hover:opacity-80 transition-opacity mt-1">
+    <div className="min-h-screen bg-[#111] text-white">
+      <header className="sticky top-0 z-30 border-b border-white/8 bg-[#111]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-screen-2xl items-center justify-between gap-4 px-6 py-3">
+          <Link href="/" className="flex items-baseline gap-2 hover:opacity-80 transition-opacity">
             <span className="text-base font-bold tracking-[0.15em] uppercase">Tenasia</span>
-            <span className={`text-[10px] tracking-[0.4em] uppercase ${t.sub}`}>{tr.gallery}</span>
+            <span className="text-[10px] tracking-[0.4em] uppercase text-white/30">Gallery</span>
           </Link>
 
-          {/* 필터 */}
-          <div className="flex-1 min-w-0">
-            <FilterBar
-              persons={persons}
-              dates={dates}
-              events={events}
-              agencies={agencies}
-              filters={filters}
-              theme={theme}
-              total={total}
-              onChange={handleFilter}
-            />
-          </div>
-
-          {/* 우측: 크레딧 + 테마 + 언어 + 유저 */}
-          <div className="flex items-center gap-3 shrink-0 mt-1">
-            <CreditBadge theme={theme} />
-
-            {/* 언어 토글 */}
-            <div className={`flex items-center text-[11px] font-medium border rounded-full overflow-hidden ${t.border}`}>
-              <button
-                onClick={() => setLang("en")}
-                className={`px-2 py-0.5 transition-colors ${
-                  lang === "en"
-                    ? (theme === "black" || theme === "charcoal" ? "bg-white text-black" : "bg-black text-white")
-                    : `${t.sub} hover:opacity-80`
-                }`}
-              >EN</button>
-              <button
-                onClick={() => setLang("ko")}
-                className={`px-2 py-0.5 transition-colors ${
-                  lang === "ko"
-                    ? (theme === "black" || theme === "charcoal" ? "bg-white text-black" : "bg-black text-white")
-                    : `${t.sub} hover:opacity-80`
-                }`}
-              >한</button>
-            </div>
-
-            {/* 테마 선택 */}
-            <div className="flex gap-1.5">
-              {(Object.keys(THEMES) as ThemeKey[]).map((k) => (
-                <button
-                  key={k}
-                  onClick={() => changeTheme(k)}
-                  title={tr[THEMES[k].labelKey]}
-                  className={`w-4 h-4 rounded-full border transition-all ${
-                    theme === k ? "ring-2 ring-offset-1 ring-current scale-110" : "opacity-50 hover:opacity-80"
-                  }`}
-                  style={{
-                    backgroundColor: THEMES[k].swatch,
-                    borderColor: theme === "white" || theme === "cream" ? "#00000030" : "#ffffff30",
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* 유저 메뉴 */}
-            <UserMenu theme={theme} />
+          <div className="flex items-center gap-3">
+            <CreditBadge theme="black" />
+            <Link
+              href="/archive"
+              className="rounded-full border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:border-white/30 hover:text-white"
+            >
+              Browse Archive
+            </Link>
+            <Link
+              href={session?.user ? "/account" : "/auth/signin"}
+              className="rounded-full border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:border-white/30 hover:text-white"
+            >
+              {session?.user ? "Account" : "Sign In"}
+            </Link>
           </div>
         </div>
       </header>
 
-      <main className="max-w-screen-2xl mx-auto px-6 py-8">
-        <PhotoGrid
-          photos={photos}
-          loading={loading}
-          hasMore={photos.length < total}
-          onLoadMore={() => fetchPhotos(filters, page + 1)}
-          theme={theme}
-          onCreditsChange={refreshCredits}
-        />
+      <main className="mx-auto max-w-screen-2xl px-6 py-10">
+        <section className="grid gap-8 border-b border-white/8 pb-10 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-5">
+            <p className="text-[11px] uppercase tracking-[0.45em] text-white/30">Editorial Archive</p>
+            <h1 className="max-w-3xl text-4xl font-light tracking-tight text-white sm:text-5xl">
+              Event-led photo discovery for fast editorial browsing.
+            </h1>
+            <p className="max-w-2xl text-sm leading-6 text-white/55">
+              Instead of loading the full archive up front, the home page highlights recent events,
+              featured artists, and recent uploads. Full search and filter access stays in the archive.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/archive"
+                className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"
+              >
+                Open Full Archive
+              </Link>
+              {eventCards[0] && (
+                <Link
+                  href={`/archive?event=${encodeURIComponent(eventCards[0].name)}`}
+                  className="rounded-full border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:border-white/30 hover:text-white"
+                >
+                  View Latest Event
+                </Link>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {eventCards.slice(0, 2).map((event) => (
+              <Link
+                key={event.name}
+                href={`/archive?event=${encodeURIComponent(event.name)}`}
+                className="group overflow-hidden rounded-3xl border border-white/8 bg-white/[0.03]"
+              >
+                <div className="relative aspect-[4/5]">
+                  <Image
+                    src={`/api/image?path=${encodeURIComponent(event.photoId)}&w=720`}
+                    alt={event.name}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    unoptimized
+                    priority
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.35em] text-white/45">
+                      {event.date?.slice(0, 7).replace("-", ".") ?? "Recent"}
+                    </p>
+                    <h2 className="mt-2 text-lg font-medium text-white">{event.name}</h2>
+                    <p className="mt-1 text-xs text-white/55">{event.count} photos</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="py-10">
+          <div className="mb-5 flex items-end justify-between gap-4 border-b border-white/8 pb-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.35em] text-white/30">Latest Events</p>
+              <h2 className="mt-2 text-2xl font-light text-white">Recent event collections</h2>
+            </div>
+            <Link href="/archive" className="text-sm text-white/45 hover:text-white">
+              View all
+            </Link>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {eventCards.map((event) => (
+              <Link
+                key={event.name}
+                href={`/archive?event=${encodeURIComponent(event.name)}`}
+                className="group overflow-hidden rounded-3xl border border-white/8 bg-white/[0.03]"
+              >
+                <div className="relative aspect-[16/10]">
+                  <Image
+                    src={`/api/image?path=${encodeURIComponent(event.photoId)}&w=640`}
+                    alt={event.name}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    sizes="(max-width: 1280px) 50vw, 33vw"
+                    unoptimized
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+                </div>
+                <div className="space-y-1 p-4">
+                  <p className="text-[11px] uppercase tracking-[0.3em] text-white/35">
+                    {event.date?.slice(0, 7).replace("-", ".") ?? "Archive"}
+                  </p>
+                  <h3 className="text-base text-white">{event.name}</h3>
+                  <p className="text-xs text-white/50">{event.count} photos</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="grid gap-10 border-t border-white/8 py-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.35em] text-white/30">Featured Artists</p>
+            <h2 className="mt-2 text-2xl font-light text-white">Most active names in the archive</h2>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {featuredArtists.map((person) => (
+                <Link
+                  key={person.name}
+                  href={`/archive?person=${encodeURIComponent(person.name)}`}
+                  className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/70 hover:border-white/30 hover:text-white"
+                >
+                  {person.name} <span className="text-white/35">{person.count}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.35em] text-white/30">Recent Uploads</p>
+                <h2 className="mt-2 text-2xl font-light text-white">Fresh additions</h2>
+              </div>
+              <Link href="/archive" className="text-sm text-white/45 hover:text-white">
+                Open archive
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {recentPhotos.map((photo) => (
+                <Link
+                  key={photo.id}
+                  href={`/archive?event=${encodeURIComponent(photo.role ?? "")}`}
+                  className="group overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03]"
+                >
+                  <div className="relative aspect-[3/4]">
+                    <Image
+                      src={`/api/image?path=${encodeURIComponent(photo.id)}&w=480`}
+                      alt={photo.person ?? photo.role ?? "photo"}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      sizes="(max-width: 768px) 50vw, 20vw"
+                      unoptimized
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-3">
+                      <p className="line-clamp-2 text-xs text-white">{photo.person ?? photo.role ?? "Tenasia"}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   );

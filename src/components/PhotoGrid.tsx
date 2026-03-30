@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Photo } from "@/types";
 import Lightbox from "@/components/Lightbox";
 import InsufficientCreditsModal from "@/components/InsufficientCreditsModal";
-import { ThemeKey } from "@/app/page";
+import { ThemeKey } from "@/lib/themes";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
 import { useCredits } from "@/lib/credits";
 

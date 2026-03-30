@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Person, DateEntry, GalleryEvent } from "@/types";
-import { Filters, ThemeKey } from "@/app/page";
+import { Filters, ThemeKey } from "@/lib/gallery-ui";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
 
 type AgencyEntry = { name: string; count: number };
