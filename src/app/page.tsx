@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import CreditBadge from "@/components/CreditBadge";
-import { authOptions } from "@/lib/auth";
-import { getAllPhotos, getEvents, getPersons } from "@/lib/r2";
+import HomeHeaderActions from "@/components/HomeHeaderActions";
+import { getAllPhotos } from "@/lib/r2";
+import { Photo } from "@/types";
+
+export const revalidate = 3600;
 
 type EventCard = {
   name: string;
@@ -12,41 +14,51 @@ type EventCard = {
   date: string | null;
 };
 
-function buildEventCards(): Promise<EventCard[]> {
-  return Promise.all([getAllPhotos(), getEvents()]).then(([photos, events]) => {
-    const byEvent = new Map<string, { photoId: string; date: string | null }>();
-    for (const photo of photos) {
-      if (!photo.role || byEvent.has(photo.role)) continue;
-      byEvent.set(photo.role, { photoId: photo.id, date: photo.date });
+function buildHomeData(photos: Photo[]) {
+  const eventMap = new Map<string, EventCard>();
+  const personMap = new Map<string, number>();
+
+  for (const photo of photos) {
+    if (photo.role) {
+      const existing = eventMap.get(photo.role);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        eventMap.set(photo.role, {
+          name: photo.role,
+          count: 1,
+          photoId: photo.id,
+          date: photo.date,
+        });
+      }
     }
 
-    return events
-      .filter((event) => byEvent.has(event.name))
-      .sort((a, b) => {
-        const aDate = byEvent.get(a.name)?.date ?? "";
-        const bDate = byEvent.get(b.name)?.date ?? "";
-        return bDate.localeCompare(aDate) || b.count - a.count;
-      })
-      .slice(0, 6)
-      .map((event) => ({
-        name: event.name,
-        count: event.count,
-        photoId: byEvent.get(event.name)!.photoId,
-        date: byEvent.get(event.name)!.date,
-      }));
-  });
+    if (!photo.person) continue;
+    for (const name of photo.person.split(",").map((value) => value.trim())) {
+      if (!name) continue;
+      personMap.set(name, (personMap.get(name) ?? 0) + 1);
+    }
+  }
+
+  const eventCards = [...eventMap.values()]
+    .sort((a, b) => b.date?.localeCompare(a.date ?? "") || b.count - a.count)
+    .slice(0, 6);
+
+  const featuredArtists = [...personMap.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  return {
+    eventCards,
+    featuredArtists,
+    recentPhotos: photos.slice(0, 8),
+  };
 }
 
 export default async function HomePage() {
-  const session = await getServerSession(authOptions);
-  const [eventCards, persons, photos] = await Promise.all([
-    buildEventCards(),
-    getPersons(),
-    getAllPhotos(),
-  ]);
-
-  const featuredArtists = persons.slice(0, 8);
-  const recentPhotos = photos.slice(0, 8);
+  const photos = await getAllPhotos();
+  const { eventCards, featuredArtists, recentPhotos } = buildHomeData(photos);
 
   return (
     <div className="min-h-screen bg-[#111] text-white">
@@ -65,12 +77,7 @@ export default async function HomePage() {
             >
               Browse Archive
             </Link>
-            <Link
-              href={session?.user ? "/account" : "/auth/signin"}
-              className="rounded-full border border-white/12 px-3 py-1.5 text-xs font-medium text-white/75 hover:border-white/30 hover:text-white"
-            >
-              {session?.user ? "Account" : "Sign In"}
-            </Link>
+            <HomeHeaderActions />
           </div>
         </div>
       </header>
@@ -78,27 +85,28 @@ export default async function HomePage() {
       <main className="mx-auto max-w-screen-2xl px-6 py-10">
         <section className="grid gap-8 border-b border-white/8 pb-10 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-5">
-            <p className="text-[11px] uppercase tracking-[0.45em] text-white/30">Editorial Archive</p>
+            <p className="text-[11px] uppercase tracking-[0.45em] text-white/30">Tenasia Original Archive</p>
             <h1 className="max-w-3xl text-4xl font-light tracking-tight text-white sm:text-5xl">
-              Event-led photo discovery for fast editorial browsing.
+              Tenasia&apos;s original photo archive for K-pop and Korean entertainment.
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-white/55">
-              Instead of loading the full archive up front, the home page highlights recent events,
-              featured artists, and recent uploads. Full search and filter access stays in the archive.
+              Browse and license Tenasia-shot images across K-pop, drama, film, stage, and live events.
+              Search polished editorial coverage, move quickly through recent shoots, and download the images you need from a
+              newsroom-built archive.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/archive"
                 className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"
               >
-                Open Full Archive
+                Search Photos
               </Link>
               {eventCards[0] && (
                 <Link
                   href={`/archive?event=${encodeURIComponent(eventCards[0].name)}`}
                   className="rounded-full border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:border-white/30 hover:text-white"
                 >
-                  View Latest Event
+                  Latest Event
                 </Link>
               )}
             </div>
