@@ -14,21 +14,63 @@ type EventCard = {
   date: string | null;
 };
 
+type EventBucket = {
+  name: string;
+  count: number;
+  photos: Photo[];
+  latestDate: string | null;
+};
+
+function isFeaturedYear(photo: Photo): boolean {
+  const year = photo.date?.slice(0, 4);
+  return year === "2025" || year === "2026";
+}
+
+function makeSeed(): number {
+  const now = new Date();
+  return Number(`${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, "0")}${String(now.getUTCDate()).padStart(2, "0")}${String(now.getUTCHours()).padStart(2, "0")}`);
+}
+
+function hashString(value: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function sortBySeed<T>(items: T[], seedKey: (item: T) => string, seed: number): T[] {
+  return [...items].sort((a, b) => {
+    const aHash = hashString(`${seed}:${seedKey(a)}`);
+    const bHash = hashString(`${seed}:${seedKey(b)}`);
+    return aHash - bHash;
+  });
+}
+
 function buildHomeData(photos: Photo[]) {
-  const eventMap = new Map<string, EventCard>();
+  const seed = makeSeed();
+  const featuredPool = photos.filter(isFeaturedYear);
+  const sourcePhotos = featuredPool.length > 0 ? featuredPool : photos;
+
+  const eventMap = new Map<string, EventBucket>();
   const personMap = new Map<string, number>();
 
-  for (const photo of photos) {
+  for (const photo of sourcePhotos) {
     if (photo.role) {
       const existing = eventMap.get(photo.role);
       if (existing) {
         existing.count += 1;
+        existing.photos.push(photo);
+        if ((photo.date ?? "") > (existing.latestDate ?? "")) {
+          existing.latestDate = photo.date;
+        }
       } else {
         eventMap.set(photo.role, {
           name: photo.role,
           count: 1,
-          photoId: photo.id,
-          date: photo.date,
+          photos: [photo],
+          latestDate: photo.date,
         });
       }
     }
@@ -40,19 +82,33 @@ function buildHomeData(photos: Photo[]) {
     }
   }
 
-  const eventCards = [...eventMap.values()]
-    .sort((a, b) => b.date?.localeCompare(a.date ?? "") || b.count - a.count)
-    .slice(0, 6);
+  const eventCards = sortBySeed([...eventMap.values()], (event) => `${event.name}:${event.latestDate ?? ""}`, seed)
+    .slice(0, 6)
+    .map((event) => {
+      const chosenPhoto = sortBySeed(event.photos, (photo) => photo.id, seed)[0] ?? event.photos[0];
+      return {
+        name: event.name,
+        count: event.count,
+        photoId: chosenPhoto.id,
+        date: event.latestDate,
+      };
+    });
 
   const featuredArtists = [...personMap.entries()]
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
 
+  const recentPhotos = sortBySeed(
+    sourcePhotos.filter((photo) => !!photo.role),
+    (photo) => `${photo.role ?? ""}:${photo.id}`,
+    seed,
+  ).slice(0, 8);
+
   return {
     eventCards,
     featuredArtists,
-    recentPhotos: photos.slice(0, 8),
+    recentPhotos,
   };
 }
 
@@ -106,7 +162,7 @@ export default async function HomePage() {
                   href={`/archive?event=${encodeURIComponent(eventCards[0].name)}`}
                   className="rounded-full border border-white/12 px-4 py-2 text-sm font-medium text-white/75 hover:border-white/30 hover:text-white"
                 >
-                  Latest Event
+                  Featured Event
                 </Link>
               )}
             </div>
@@ -132,7 +188,7 @@ export default async function HomePage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-4">
                     <p className="text-[11px] uppercase tracking-[0.35em] text-white/45">
-                      {event.date?.slice(0, 7).replace("-", ".") ?? "Recent"}
+                      {event.date?.slice(0, 7).replace("-", ".") ?? "Featured"}
                     </p>
                     <h2 className="mt-2 text-lg font-medium text-white">{event.name}</h2>
                     <p className="mt-1 text-xs text-white/55">{event.count} photos</p>
@@ -146,8 +202,8 @@ export default async function HomePage() {
         <section className="py-10">
           <div className="mb-5 flex items-end justify-between gap-4 border-b border-white/8 pb-3">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.35em] text-white/30">Latest Events</p>
-              <h2 className="mt-2 text-2xl font-light text-white">Recent event collections</h2>
+              <p className="text-[11px] uppercase tracking-[0.35em] text-white/30">2025-2026 Events</p>
+              <h2 className="mt-2 text-2xl font-light text-white">Rotating event selections</h2>
             </div>
             <Link href="/archive" className="text-sm text-white/45 hover:text-white">
               View all
@@ -204,8 +260,8 @@ export default async function HomePage() {
           <div>
             <div className="mb-5 flex items-end justify-between gap-4">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.35em] text-white/30">Recent Uploads</p>
-                <h2 className="mt-2 text-2xl font-light text-white">Fresh additions</h2>
+                <p className="text-[11px] uppercase tracking-[0.35em] text-white/30">Rotating Photo Picks</p>
+                <h2 className="mt-2 text-2xl font-light text-white">Randomized recent event frames</h2>
               </div>
               <Link href="/archive" className="text-sm text-white/45 hover:text-white">
                 Open archive
