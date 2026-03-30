@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import polar from "@/lib/polar";
+import { getPolar } from "@/lib/polar";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -14,6 +14,7 @@ const SINGLE_PHOTO_PRODUCT_ID = "89730975-6c13-4bcf-93ec-849cfd474d80";
 
 // GET /api/polar/checkout-status?checkout_id=xxx
 export async function GET(req: NextRequest) {
+  const polar = getPolar();
   const checkoutId = req.nextUrl.searchParams.get("checkout_id");
   if (!checkoutId) {
     return NextResponse.json({ error: "Missing checkout_id" }, { status: 400 });

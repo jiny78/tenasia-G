@@ -2,7 +2,7 @@ import { Webhooks } from "@polar-sh/nextjs";
 import { type NextRequest } from "next/server";
 import { requireEnv } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
-import polar from "@/lib/polar";
+import { getPolar } from "@/lib/polar";
 
 const LOG = "[POLAR_WEBHOOK]";
 
@@ -17,10 +17,12 @@ const CREDIT_MAP: Record<string, number> = {
 const SINGLE_PHOTO_PRODUCT_ID = "89730975-6c13-4bcf-93ec-849cfd474d80";
 
 // ── Webhooks 핸들러 (서명 검증 포함) ─────────────────────────────
-const webhookHandler = Webhooks({
-  webhookSecret: requireEnv("POLAR_WEBHOOK_SECRET"),
+function createWebhookHandler() {
+  return Webhooks({
+    webhookSecret: requireEnv("POLAR_WEBHOOK_SECRET"),
 
-  onOrderPaid: async (payload) => {
+    onOrderPaid: async (payload) => {
+      const polar = getPolar();
     // payload = WebhookOrderPaidPayload { type, timestamp, data: Order }
     const order = payload.data;
 
@@ -183,8 +185,9 @@ const webhookHandler = Webhooks({
     }
 
     console.log(`${LOG} ── 처리 완료 ────────────────────────────────`);
-  },
-});
+    },
+  });
+}
 
 // ── POST 핸들러: 요청 도달 여부 디버깅 로그 추가 ─────────────────
 export async function POST(req: NextRequest) {
@@ -204,6 +207,7 @@ export async function POST(req: NextRequest) {
     console.log(`${LOG} body length:       (clone 실패)`);
   }
 
+  const webhookHandler = createWebhookHandler();
   const resp = await webhookHandler(req);
   console.log(`${LOG} 응답 상태:         ${resp.status}`);
   return resp;
