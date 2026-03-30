@@ -1,5 +1,6 @@
 import { Webhooks } from "@polar-sh/nextjs";
 import { type NextRequest } from "next/server";
+import { requireEnv } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import polar from "@/lib/polar";
 
@@ -17,7 +18,7 @@ const SINGLE_PHOTO_PRODUCT_ID = "89730975-6c13-4bcf-93ec-849cfd474d80";
 
 // ── Webhooks 핸들러 (서명 검증 포함) ─────────────────────────────
 const webhookHandler = Webhooks({
-  webhookSecret: process.env.POLAR_WEBHOOK_SECRET ?? "",
+  webhookSecret: requireEnv("POLAR_WEBHOOK_SECRET"),
 
   onOrderPaid: async (payload) => {
     // payload = WebhookOrderPaidPayload { type, timestamp, data: Order }

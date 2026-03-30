@@ -4,18 +4,17 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getCredits } from "@/lib/credits";
 import { useLang, TRANSLATIONS } from "@/lib/i18n";
 
 export default function SignUpPage() {
   const { lang } = useLang();
-  const tr       = TRANSLATIONS[lang];
-  const router   = useRouter();
+  const tr = TRANSLATIONS[lang];
+  const router = useRouter();
 
   const [form, setForm] = useState({
     name: "", email: "", password: "", company: "", jobTitle: "", country: "",
   });
-  const [error,   setError]   = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   function set(field: string, value: string) {
@@ -27,14 +26,11 @@ export default function SignUpPage() {
     setError("");
     setLoading(true);
 
-    // localStorage 크레딧 병합
-    const localCredits = getCredits();
-
     try {
       const res = await fetch("/api/auth/register", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ ...form, localCredits }),
+        body: JSON.stringify(form),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -43,9 +39,8 @@ export default function SignUpPage() {
         return;
       }
 
-      // 자동 로그인
       const signInRes = await signIn("credentials", {
-        email:    form.email,
+        email: form.email,
         password: form.password,
         redirect: false,
       });
@@ -68,7 +63,6 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-[#111] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        {/* 로고 */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-baseline gap-2 hover:opacity-80 transition-opacity">
             <span className="text-white text-base font-bold tracking-[0.15em] uppercase">Tenasia</span>
@@ -79,7 +73,6 @@ export default function SignUpPage() {
         <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-6 shadow-2xl">
           <h1 className="text-white text-lg font-semibold mb-5">{tr.authSignUp}</h1>
 
-          {/* Google */}
           <button
             onClick={handleGoogle}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
@@ -102,7 +95,6 @@ export default function SignUpPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-3">
-            {/* 이름 */}
             <div>
               <label className="block text-white/50 text-xs mb-1">{tr.authName}</label>
               <input
@@ -115,7 +107,6 @@ export default function SignUpPage() {
                            focus:border-white/30 transition-colors"
               />
             </div>
-            {/* 이메일 */}
             <div>
               <label className="block text-white/50 text-xs mb-1">{tr.authEmail}</label>
               <input
@@ -129,7 +120,6 @@ export default function SignUpPage() {
                            focus:border-white/30 transition-colors"
               />
             </div>
-            {/* 비밀번호 */}
             <div>
               <label className="block text-white/50 text-xs mb-1">{tr.authPassword}</label>
               <input
@@ -144,7 +134,6 @@ export default function SignUpPage() {
                            focus:border-white/30 transition-colors"
               />
             </div>
-            {/* 선택 항목 */}
             <div className="pt-1 space-y-3">
               <p className="text-white/20 text-[11px]">{tr.authOptional}</p>
               <input

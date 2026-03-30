@@ -5,8 +5,13 @@ import { prisma } from "@/lib/prisma";
 const recentViews = new Map<string, number>();
 
 export async function POST(req: NextRequest) {
+  const middlewareSecret = process.env.MIDDLEWARE_SECRET;
+  if (!middlewareSecret) {
+    return NextResponse.json({ ok: false }, { status: 503 });
+  }
+
   const token = req.headers.get("x-middleware-token");
-  if (token !== (process.env.MIDDLEWARE_SECRET ?? "dev")) {
+  if (token !== middlewareSecret) {
     return NextResponse.json({ ok: false }, { status: 403 });
   }
 

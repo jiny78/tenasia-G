@@ -395,10 +395,10 @@ export default function PhotoDetailClient({ data, related, prevId, nextId }: Pro
                   className={`group relative overflow-hidden photo-shield
                              aspect-[3/4] ${isDark ? "bg-white/4" : "bg-black/5"} rounded-sm`}
                   onContextMenu={(e) => e.preventDefault()}>
-                  <Image
-                    src={`/api/image?path=${encodeURIComponent(r.key)}`}
-                    alt={r.person ?? "photo"}
-                    fill
+                    <Image
+                     src={`/api/image?path=${encodeURIComponent(r.key)}&w=480`}
+                      alt={r.person ?? "photo"}
+                      fill
                     sizes="(max-width: 640px) 50vw, 25vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-[1.04]
                                select-none pointer-events-none"

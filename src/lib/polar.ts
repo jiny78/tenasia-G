@@ -1,7 +1,8 @@
 import { Polar } from "@polar-sh/sdk";
+import { requireEnv } from "@/lib/env";
 
 const polar = new Polar({
-  accessToken: process.env.POLAR_ACCESS_TOKEN ?? "",
+  accessToken: requireEnv("POLAR_ACCESS_TOKEN"),
   server: "production",
 });
 

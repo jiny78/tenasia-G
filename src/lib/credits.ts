@@ -3,10 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 
-const KEY          = "tg-credits";
+const KEY = "tg-credits";
 const SESSIONS_KEY = "tg-paid-sessions";
-
-// ── localStorage 기반 (비로그인 사용자) ──────────────────────────
 
 export function getCredits(): number {
   if (typeof window === "undefined") return 0;
@@ -20,15 +18,14 @@ export function addCredits(n: number): number {
 }
 
 export function spendLocalCredit(): boolean {
-  const c = getCredits();
-  if (c <= 0) return false;
-  localStorage.setItem(KEY, String(c - 1));
+  const credits = getCredits();
+  if (credits <= 0) return false;
+  localStorage.setItem(KEY, String(credits - 1));
   return true;
 }
 
-/** 이미 처리한 Stripe session인지 확인 (중복 충전 방지) */
 export function markSession(sessionId: string): boolean {
-  const raw      = localStorage.getItem(SESSIONS_KEY) ?? "[]";
+  const raw = localStorage.getItem(SESSIONS_KEY) ?? "[]";
   const sessions: string[] = JSON.parse(raw);
   if (sessions.includes(sessionId)) return false;
   sessions.push(sessionId);
@@ -36,25 +33,23 @@ export function markSession(sessionId: string): boolean {
   return true;
 }
 
-// ── DB 기반 hook (로그인 사용자) / localStorage fallback (비로그인) ──
-
 export function useCredits() {
   const { data: session, status } = useSession();
-  const [balance, setBalance]     = useState(0);
-  const [loading, setLoading]     = useState(true);
+  const [balance, setBalance] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     if (session?.user?.id) {
       try {
-        const res  = await fetch("/api/account/credits");
+        const res = await fetch("/api/account/credits");
         const data = await res.json();
         setBalance(data.balance ?? 0);
       } catch {
         setBalance(0);
       }
     } else {
-      setBalance(getCredits());
+      setBalance(0);
     }
     setLoading(false);
   }, [session?.user?.id]);
@@ -67,47 +62,31 @@ export function useCredits() {
     return () => clearTimeout(timer);
   }, [status, refresh]);
 
-  /** 크레딧 차감 + (로그인) 다운로드 기록. 성공 시 signed token 반환 */
   const spendAndGetToken = useCallback(
     async (
       photoId: string,
-      photoUrl: string,
+      _photoUrl: string,
       photoName?: string,
-      licenseType: string = "editorial",
-      creditsUsed: number = 1,
+      licenseType = "editorial",
     ): Promise<string | null> => {
-      if (session?.user?.id) {
-        const res  = await fetch("/api/account/downloads", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ photoId, photoUrl, photoName, licenseType, creditsUsed }),
-        });
-        const data = await res.json();
-        if (!res.ok) return null;
-        // 잔액 갱신
-        const cr = await fetch("/api/account/credits");
-        const cd = await cr.json();
-        setBalance(cd.balance ?? 0);
-        return data.token as string;
-      } else {
-        // 비로그인: localStorage 크레딧 차감 + /api/request-download 토큰 획득
-        if (creditsUsed > 1) {
-          // 비로그인은 editorial(1크레딧)만 지원
-          const c = getCredits();
-          if (c < creditsUsed) return null;
-          localStorage.setItem("tg-credits", String(c - creditsUsed));
-          setBalance((prev) => Math.max(0, prev - creditsUsed));
-        } else {
-          const ok = spendLocalCredit();
-          if (!ok) return null;
-          setBalance((prev) => Math.max(0, prev - 1));
-        }
-        const res  = await fetch(`/api/request-download?url=${encodeURIComponent(photoUrl)}`);
-        const data = await res.json();
-        return data.token ?? null;
+      if (!session?.user?.id) {
+        return null;
       }
+
+      const res = await fetch("/api/account/downloads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoId, photoName, licenseType }),
+      });
+      const data = await res.json();
+      if (!res.ok) return null;
+
+      const creditsRes = await fetch("/api/account/credits");
+      const creditsData = await creditsRes.json();
+      setBalance(creditsData.balance ?? 0);
+      return data.token as string;
     },
-    [session?.user?.id]
+    [session?.user?.id],
   );
 
   return { balance, loading, refresh, spendAndGetToken };

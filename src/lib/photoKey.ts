@@ -20,7 +20,7 @@ export function decodePhotoKey(encoded: string): string {
     return Buffer.from(encoded, "base64url").toString("utf8");
   }
   // 브라우저
-  const padded = encoded + "==".slice(0, (4 - (encoded.length % 4)) % 4);
+  const padded = encoded + "=".repeat((4 - (encoded.length % 4)) % 4);
   const binary = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
   const bytes = new Uint8Array(Array.from(binary, (c) => c.charCodeAt(0)));
   return new TextDecoder().decode(bytes);

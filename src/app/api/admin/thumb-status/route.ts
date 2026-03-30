@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { checkAdmin } from "@/app/api/admin/_check";
+import { requireEnv } from "@/lib/env";
 
 const s3 = new S3Client({
   region: "auto",
-  endpoint: process.env.R2_ENDPOINT ?? "",
+  endpoint: requireEnv("R2_ENDPOINT"),
   credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
+    accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
+    secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
   },
 });
-const BUCKET = process.env.R2_BUCKET ?? "";
+const BUCKET = requireEnv("R2_BUCKET");
 const THUMB_WIDTH = 480;
 
 async function countKeys(prefix: string): Promise<number> {
@@ -32,8 +33,6 @@ async function countKeys(prefix: string): Promise<number> {
 export async function GET() {
   const auth = await checkAdmin();
   if (!auth.ok) return auth.res;
-
-  if (!BUCKET) return NextResponse.json({ error: "Storage not configured" }, { status: 503 });
 
   const [photos, thumbs] = await Promise.all([
     countKeys("photos/"),

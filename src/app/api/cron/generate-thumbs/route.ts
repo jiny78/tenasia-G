@@ -6,20 +6,21 @@ import {
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import sharp from "sharp";
+import { requireEnv } from "@/lib/env";
 
 const s3 = new S3Client({
   region: "auto",
-  endpoint: process.env.R2_ENDPOINT ?? "",
+  endpoint: requireEnv("R2_ENDPOINT"),
   credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
+    accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
+    secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
   },
 });
-const BUCKET = process.env.R2_BUCKET ?? "";
+const BUCKET = requireEnv("R2_BUCKET");
 
-const THUMB_WIDTH   = 480;
+const THUMB_WIDTH = 480;
 const THUMB_QUALITY = 75;
-const BATCH_LIMIT   = 50; // 한 번 실행당 최대 처리 수 (Vercel 10s timeout 고려)
+const BATCH_LIMIT = 50;
 
 async function readStream(body: AsyncIterable<Uint8Array>): Promise<Buffer> {
   const chunks: Uint8Array[] = [];
@@ -31,16 +32,16 @@ async function listAllKeys(prefix: string): Promise<Set<string>> {
   const keys = new Set<string>();
   let token: string | undefined;
   do {
-    const r = await s3.send(new ListObjectsV2Command({
+    const result = await s3.send(new ListObjectsV2Command({
       Bucket: BUCKET,
       Prefix: prefix,
       ContinuationToken: token,
       MaxKeys: 1000,
     }));
-    for (const obj of r.Contents ?? []) {
+    for (const obj of result.Contents ?? []) {
       if (obj.Key) keys.add(obj.Key);
     }
-    token = r.IsTruncated ? r.NextContinuationToken : undefined;
+    token = result.IsTruncated ? result.NextContinuationToken : undefined;
   } while (token);
   return keys;
 }
@@ -61,15 +62,14 @@ async function generateThumb(key: string): Promise<void> {
 }
 
 export async function GET(req: NextRequest) {
-  // Vercel Cron 인증 (Authorization: Bearer {CRON_SECRET})
-  const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!cronSecret) {
+    return NextResponse.json({ error: "Cron not configured" }, { status: 503 });
   }
 
-  if (!BUCKET) {
-    return NextResponse.json({ error: "Storage not configured" }, { status: 503 });
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -78,12 +78,9 @@ export async function GET(req: NextRequest) {
       listAllKeys(`thumbs/${THUMB_WIDTH}/photos/`),
     ]);
 
-    // 썸네일 키를 photos/ 형식으로 변환하여 비교
     const existingThumbs = new Set<string>();
-    for (const k of thumbKeys) {
-      // thumbs/480/photos/... → photos/...
-      const original = k.replace(`thumbs/${THUMB_WIDTH}/`, "");
-      existingThumbs.add(original);
+    for (const key of thumbKeys) {
+      existingThumbs.add(key.replace(`thumbs/${THUMB_WIDTH}/`, ""));
     }
 
     const missing: string[] = [];
@@ -101,9 +98,9 @@ export async function GET(req: NextRequest) {
       try {
         await generateThumb(key);
         done++;
-      } catch (e) {
+      } catch (error) {
         errors.push(key);
-        console.error(`Thumb generation failed: ${key}`, e);
+        console.error(`Thumb generation failed: ${key}`, error);
       }
     }
 
@@ -114,8 +111,8 @@ export async function GET(req: NextRequest) {
       remaining: missing.length - done,
       errors: errors.length,
     });
-  } catch (e) {
-    console.error("Cron generate-thumbs error:", e);
+  } catch (error) {
+    console.error("Cron generate-thumbs error:", error);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

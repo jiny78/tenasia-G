@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { authOptions } from "@/lib/auth";
+import { requireEnv } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
 export const maxDuration = 30;
@@ -17,15 +18,15 @@ const CREDIT_COST: Record<string, Record<string, number>> = {
 // ── R2 presigned URL 생성 클라이언트 ───────────────────────────────
 const s3 = new S3Client({
   region:   "auto",
-  endpoint: process.env.R2_ENDPOINT ?? "",
+  endpoint: requireEnv("R2_ENDPOINT"),
   credentials: {
-    accessKeyId:     process.env.R2_ACCESS_KEY_ID     ?? "",
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
+    accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
+    secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
   },
   forcePathStyle: true,
 });
-const BUCKET  = process.env.R2_BUCKET  ?? "";
-const R2_BASE = process.env.R2_BASE    ?? "";
+const BUCKET  = requireEnv("R2_BUCKET");
+const R2_BASE = requireEnv("R2_BASE");
 
 // ── presigned URL 생성 헬퍼 ─────────────────────────────────────────
 async function makePresignedUrl(key: string): Promise<string> {

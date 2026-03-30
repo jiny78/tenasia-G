@@ -309,10 +309,10 @@ function PhotoCard({
           {photo.date && <p className="text-white/40 text-[10px] mt-0.5">{photo.date.slice(0, 10)}</p>}
         </div>
         {/* 다운로드 버튼 — pointer-events-auto로 클릭 활성화 */}
-        <button
-          className="pointer-events-auto w-8 h-8 rounded-full bg-white/15 hover:bg-white/30
-                     backdrop-blur-sm flex items-center justify-center transition-all duration-150
-                     border border-white/20"
+          <button
+           className="pointer-events-auto relative z-20 w-8 h-8 rounded-full bg-white/15 hover:bg-white/30
+                       backdrop-blur-sm flex items-center justify-center transition-all duration-150
+                       border border-white/20"
           onClick={(e) => { e.stopPropagation(); onDownload(); }}
           onContextMenu={noCtx}
           title={tr.downloadCreditNote}

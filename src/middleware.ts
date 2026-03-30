@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
+  const middlewareSecret = process.env.MIDDLEWARE_SECRET;
 
   // sessionId 쿠키 생성/읽기
   let sessionId = request.cookies.get("tg-session")?.value;
@@ -26,15 +27,16 @@ export function middleware(request: NextRequest) {
     sessionId,
   });
 
-  // fire-and-forget
-  fetch(`${request.nextUrl.origin}/api/admin/log-pageview`, {
-    method:  "POST",
-    headers: {
-      "Content-Type":       "application/json",
-      "x-middleware-token": process.env.MIDDLEWARE_SECRET ?? "dev",
-    },
-    body,
-  }).catch(() => {});
+  if (middlewareSecret) {
+    fetch(`${request.nextUrl.origin}/api/admin/log-pageview`, {
+      method:  "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-middleware-token": middlewareSecret,
+      },
+      body,
+    }).catch(() => {});
+  }
 
   return response;
 }
