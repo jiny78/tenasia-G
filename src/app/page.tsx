@@ -196,17 +196,17 @@ export default async function HomePage() {
       </header>
 
       <main className="pb-24 pt-16">
-        <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(45,156,219,0.2),_transparent_36%),radial-gradient(circle_at_85%_20%,_rgba(109,245,225,0.18),_transparent_28%)]" />
+        <section className="relative overflow-hidden bg-[#102737]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(45,156,219,0.28),_transparent_34%),radial-gradient(circle_at_85%_20%,_rgba(109,245,225,0.16),_transparent_24%),linear-gradient(135deg,rgba(7,22,33,0.92),rgba(13,43,62,0.76)_52%,rgba(6,20,30,0.9))]" />
           <div className="relative mx-auto grid min-h-[680px] max-w-screen-2xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:py-16">
             <div className="relative z-10 max-w-3xl">
-              <p className="mb-4 font-[var(--font-manrope)] text-[11px] font-extrabold tracking-[0.35em] text-[#006492] uppercase">
+              <p className="mb-4 font-[var(--font-manrope)] text-[11px] font-extrabold tracking-[0.35em] text-[#8ccdff] uppercase [text-shadow:0_1px_10px_rgba(0,0,0,0.35)]">
                 The Editorial Gallery
               </p>
-              <h1 className="max-w-3xl font-[var(--font-manrope)] text-4xl font-extrabold leading-[0.95] tracking-[-0.04em] text-white sm:text-5xl lg:text-7xl">
+              <h1 className="max-w-3xl font-[var(--font-manrope)] text-4xl font-extrabold leading-[0.95] tracking-[-0.04em] text-white [text-shadow:0_10px_30px_rgba(0,0,0,0.45)] sm:text-5xl lg:text-7xl">
                 Your premium gateway to Korean entertainment photography.
               </h1>
-              <p className="mt-6 max-w-2xl text-sm leading-7 text-white/78 sm:text-base">
+              <p className="mt-6 max-w-2xl text-sm leading-7 text-white/90 [text-shadow:0_8px_24px_rgba(0,0,0,0.38)] sm:text-base">
                 Tenasia&apos;s archive is organized like a living exhibition: recent press calls, comeback stages, red carpets,
                 and actor portraits presented as curated editorial moments rather than a generic stock grid.
               </p>
@@ -246,7 +246,7 @@ export default async function HomePage() {
                           ? "bg-[#006492] text-white"
                           : index === 1
                             ? "bg-[#6df5e1] text-[#006f64]"
-                            : "bg-[#f6f3f2]/78 text-white/88 backdrop-blur-sm hover:bg-[#f6f3f2]/90 hover:text-[#1c1b1b]"
+                            : "bg-[#f6f3f2]/88 text-[#102737] shadow-[0_6px_20px_rgba(0,0,0,0.08)] backdrop-blur-sm hover:bg-white hover:text-[#0c2030]"
                       }`}
                     >
                       {chip}
@@ -257,7 +257,7 @@ export default async function HomePage() {
             </div>
 
             <div className="relative flex min-h-[420px] items-end lg:min-h-[560px]">
-              <div className="absolute inset-0 rounded-[2rem] bg-[linear-gradient(180deg,rgba(12,32,47,0.1),rgba(12,32,47,0.45))]" />
+              <div className="absolute inset-0 rounded-[2rem] bg-[linear-gradient(180deg,rgba(3,14,24,0.22),rgba(6,23,35,0.64))]" />
               {heroPhoto && (
                 <div className="absolute inset-0 overflow-hidden rounded-[2rem]">
                   <Image
@@ -269,7 +269,7 @@ export default async function HomePage() {
                     sizes="(max-width: 1024px) 100vw, 45vw"
                     unoptimized
                   />
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(12,32,47,0.18),rgba(12,32,47,0.7))]" />
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,14,24,0.1),rgba(6,23,35,0.8))]" />
                 </div>
               )}
 
