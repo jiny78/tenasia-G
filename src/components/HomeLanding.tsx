@@ -39,6 +39,7 @@ type HomeData = {
 
 type Props = {
   photos: Photo[];
+  initialSeed: number;
 };
 
 const VISIT_SEED_KEY = "tenasia-home-seed";
@@ -56,13 +57,6 @@ const mosaicPattern = [
 function isFeaturedYear(photo: Photo): boolean {
   const year = photo.date?.slice(0, 4);
   return year === "2025" || year === "2026";
-}
-
-function makeSeed(): number {
-  const now = new Date();
-  return Number(
-    `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, "0")}${String(now.getUTCDate()).padStart(2, "0")}${String(now.getUTCHours()).padStart(2, "0")}`,
-  );
 }
 
 function hashString(value: string): number {
@@ -215,13 +209,12 @@ function readOrCreateVisitSeed(fallbackSeed: number): number {
   return nextSeed;
 }
 
-export default function HomeLanding({ photos }: Props) {
-  const fallbackSeed = useMemo(() => makeSeed(), []);
-  const [seed, setSeed] = useState(fallbackSeed);
+export default function HomeLanding({ photos, initialSeed }: Props) {
+  const [seed, setSeed] = useState(initialSeed);
 
   useEffect(() => {
-    setSeed(readOrCreateVisitSeed(fallbackSeed));
-  }, [fallbackSeed]);
+    setSeed(readOrCreateVisitSeed(initialSeed));
+  }, [initialSeed]);
 
   const { heroPhoto, eventCards, featuredArtists, recentPhotos, categoryChips, mosaicPhotos } = useMemo(
     () => buildHomeData(photos, seed),
