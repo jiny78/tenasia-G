@@ -37,24 +37,29 @@ export default function AccountDashboardClient() {
   const [data, setData] = useState<DashboardState>(initialState);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [partial, setPartial] = useState(false);
 
   useEffect(() => {
     if (status !== "authenticated") return;
 
     let cancelled = false;
 
-    Promise.all([
-      fetch("/api/account/credits", { cache: "no-store" }).then((res) => res.json()),
-      fetch("/api/account/purchases?page=1&limit=3", { cache: "no-store" }).then((res) => res.json()),
-      fetch("/api/account/downloads?page=1&limit=5", { cache: "no-store" }).then((res) => res.json()),
-    ])
-      .then(([creditData, purchaseData, downloadData]) => {
+    fetch("/api/account/dashboard", { cache: "no-store" })
+      .then(async (res) => {
+        const payload = await res.json();
+        if (!res.ok) {
+          throw new Error(payload.error ?? `Dashboard request failed: ${res.status}`);
+        }
+        return payload;
+      })
+      .then((payload) => {
         if (cancelled) return;
         setData({
-          balance: creditData.balance ?? 0,
-          purchases: purchaseData.purchases ?? [],
-          downloads: downloadData.downloads ?? [],
+          balance: payload.balance ?? 0,
+          purchases: payload.purchases ?? [],
+          downloads: payload.downloads ?? [],
         });
+        setPartial(Boolean(payload.partial));
       })
       .catch(() => {
         if (cancelled) return;
@@ -89,6 +94,12 @@ export default function AccountDashboardClient() {
 
   return (
     <div className="space-y-8">
+      {partial && (
+        <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-amber-100">
+          Some account sections are temporarily unavailable, but the dashboard is still usable.
+        </div>
+      )}
+
       <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-6">
         <p className="mb-1 text-xs uppercase tracking-wide text-white/40">Credit Balance</p>
         <div className="mb-4 flex items-center gap-3">
