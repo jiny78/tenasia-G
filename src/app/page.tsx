@@ -1,4 +1,5 @@
 import HomeLanding from "@/components/HomeLanding";
+import { buildHomeData } from "@/lib/homeData";
 import { getAllPhotos } from "@/lib/r2";
 
 export const revalidate = 3600;
@@ -13,6 +14,7 @@ function makeInitialSeed(): number {
 export default async function HomePage() {
   const photos = await getAllPhotos();
   const initialSeed = makeInitialSeed();
+  const initialData = buildHomeData(photos, initialSeed);
 
-  return <HomeLanding photos={photos} initialSeed={initialSeed} />;
+  return <HomeLanding initialData={initialData} initialSeed={initialSeed} />;
 }
