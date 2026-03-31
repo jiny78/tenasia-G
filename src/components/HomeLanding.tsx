@@ -111,11 +111,11 @@ export default function HomeLanding({ initialData, initialSeed }: Props) {
                 The Editorial Gallery
               </p>
               <h1 className="max-w-3xl font-[var(--font-manrope)] text-4xl font-extrabold leading-[0.95] tracking-[-0.04em] text-white [text-shadow:0_10px_30px_rgba(0,0,0,0.45)] sm:text-5xl lg:text-7xl">
-                Every visit should feel like a different front page.
+                Explore Tenasia&apos;s photo archive and license the images you need.
               </h1>
               <p className="mt-6 max-w-2xl text-sm leading-7 text-white/90 [text-shadow:0_8px_24px_rgba(0,0,0,0.38)] sm:text-base">
-                Press calls, filmings, showcases, and portrait sessions are remixed into a living editorial layout so the
-                archive does not feel frozen in place.
+                Browse a wide range of celebrity events, press calls, showcases, and portraits from Tenasia, then purchase
+                credits or single-image access for fast editorial downloads.
               </p>
 
               <form action="/archive" className="mt-10 flex max-w-2xl flex-col gap-3 rounded-[1.75rem] bg-[#fcf9f8]/14 p-3 shadow-[0_12px_32px_rgba(28,27,27,0.08)] backdrop-blur-xl sm:flex-row sm:items-center">
