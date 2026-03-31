@@ -61,7 +61,7 @@ export default function CreditPurchase({ theme: themeProp }: Props) {
       customerExternalId: session.user.id ?? "",
     });
 
-    router.push(`/checkout?${params.toString()}`);
+    window.location.assign(`/checkout?${params.toString()}`);
   }
 
   return (
