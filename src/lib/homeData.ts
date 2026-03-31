@@ -137,7 +137,7 @@ export function buildHomeData(photos: Photo[], seed: number): HomeData {
       .sort((a, b) => b.count - a.count),
     (person) => `${person.name}:${person.photoId}`,
     seed + 23,
-  ).slice(0, 8);
+  ).slice(0, 7);
 
   const recentPhotos = sortBySeed(
     sourcePhotos.filter((photo) => !!photo.role),

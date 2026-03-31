@@ -74,7 +74,7 @@ export default function HomeLanding({ initialData, initialSeed }: Props) {
   );
 
   const heroEvent = eventCards[0];
-  const featuredCollections = eventCards.slice(0, 5);
+  const featuredCollections = eventCards.slice(0, 6);
   const archiveLead = recentPhotos[0] ?? heroPhoto;
   const archiveRest = archiveLead ? recentPhotos.filter((photo) => photo.id !== archiveLead.id) : recentPhotos;
   const rotatingEvents = eventCards.slice(4, 8);
