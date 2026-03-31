@@ -12,7 +12,7 @@ export default async function AccountLayout({
   children: React.ReactNode;
 }) {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/auth/signin?callbackUrl=/account");
+  if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/account");
 
   return (
     <div className="min-h-screen bg-[#111] text-white">

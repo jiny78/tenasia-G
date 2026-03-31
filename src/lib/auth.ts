@@ -62,11 +62,11 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id            = token.id as string;
+        session.user.id            = (token.id as string | undefined) ?? (token.sub as string);
         session.user.company       = token.company as string | null | undefined;
-        session.user.pressVerified = token.pressVerified as boolean;
-        session.user.pressDiscount = token.pressDiscount as number;
-        session.user.isAdmin       = token.isAdmin as boolean;
+        session.user.pressVerified = (token.pressVerified as boolean | undefined) ?? false;
+        session.user.pressDiscount = (token.pressDiscount as number | undefined) ?? 0;
+        session.user.isAdmin       = (token.isAdmin as boolean | undefined) ?? false;
       }
       return session;
     },

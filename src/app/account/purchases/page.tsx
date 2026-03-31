@@ -9,7 +9,7 @@ export default async function PurchasesPage({
   searchParams: Promise<{ page?: string }>;
 }) {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/auth/signin?callbackUrl=/account/purchases");
+  if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/account/purchases");
 
   const sp    = await searchParams;
   const page  = Math.max(1, parseInt(sp.page ?? "1", 10));

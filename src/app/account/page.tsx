@@ -6,7 +6,7 @@ import CreditPurchase from "@/components/CreditPurchase";
 
 export default async function AccountPage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/auth/signin?callbackUrl=/account");
+  if (!session?.user?.id) redirect("/auth/signin?callbackUrl=/account");
 
   const userId = session.user.id;
   const [credit, purchases, downloads] = await Promise.all([
